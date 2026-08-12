@@ -1,0 +1,33 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "Trainer app",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["dev-server.mjs"],
+      "port": 3210,
+      "autoPort": true
+    },
+    {
+      "name": "GrekFit app",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["archive/GREKFIT-COMPLETE-SNAPSHOT-2026-07-01/scripts/preview-server.mjs"],
+      "port": 3000,
+      "autoPort": true
+    },
+    {
+      "name": "GrekFit landing",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["archive/GREKFIT-COMPLETE-SNAPSHOT-2026-07-01/лендп/serve.mjs"],
+      "port": 3101,
+      "autoPort": true
+    },
+    {
+      "name": "Нью-Ленд",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["archive/GREKFIT-COMPLETE-SNAPSHOT-2026-07-01/Нью-Ленд/serve.mjs"],
+      "port": 3102,
+      "autoPort": true
+    }
+  ]
+}

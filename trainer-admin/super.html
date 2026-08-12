@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TrainerOS · База контролю</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --bg:#08090c; --surface-1:#0f1116; --surface-2:#161922; --surface-3:#1d212c;
+  --border:#242938; --border-soft:#1a1e29;
+  --text:#eef0f6; --text-muted:#9aa1b4; --text-dim:#646b80;
+  --accent:#8b7cff; --accent-deep:#6b5cff; --accent-faint:rgba(139,124,255,.08); --accent-ring:rgba(139,124,255,.28);
+  --good:#39d07f; --good-bg:rgba(45,200,110,.12); --warn:#f5b544; --danger:#ff5c6c; --radius:12px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif;font-size:15px;line-height:1.5;
+  background-image:radial-gradient(ellipse 60% 50% at 50% -10%, rgba(139,124,255,.10), transparent 70%);min-height:100vh}
+a{color:var(--accent)}
+h1{font-size:22px;font-weight:800;margin:0} h2{font-size:17px;font-weight:700;margin:0}
+.wrap{max-width:960px;margin:0 auto;padding:22px 18px 60px}
+.btn{border:0;border-radius:var(--radius);padding:11px 16px;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit;transition:.15s}
+.btn-primary{background:linear-gradient(180deg,var(--accent),var(--accent-deep));color:#fff;box-shadow:0 6px 18px -6px var(--accent-ring)}
+.btn-primary:hover{filter:brightness(1.08)} .btn-primary:disabled{opacity:.55;cursor:default}
+.btn-ghost{background:var(--surface-2);color:var(--text);border:1px solid var(--border)}
+.btn-ghost:hover{border-color:var(--accent-ring)}
+.btn-sm{padding:8px 13px;font-size:13px}
+.field{width:100%;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;color:var(--text);
+  padding:11px 13px;font-size:14px;font-family:inherit;outline:none}
+.field:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-faint)}
+.field-label{font-size:12px;color:var(--text-muted);margin:12px 2px 5px;font-weight:600}
+.card{background:var(--surface-1);border:1px solid var(--border);border-radius:16px}
+/* login */
+#login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.login-card{width:100%;max-width:380px;padding:26px}
+.brand{font-weight:800;font-size:20px;letter-spacing:-.02em}.brand b{color:var(--accent)}
+.brand-sub{font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.16em;margin-top:2px}
+/* header */
+.top{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}
+.toolbar{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:16px}
+.count-pill{font-size:13px;color:var(--text-muted);font-weight:600;background:var(--surface-2);border:1px solid var(--border);padding:3px 10px;border-radius:99px;margin-left:8px}
+/* trainer row */
+.trow{display:flex;align-items:center;gap:14px;padding:15px 16px;border-bottom:1px solid var(--border-soft)}
+.trow:last-child{border-bottom:0}
+.tava{width:42px;height:42px;border-radius:11px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;
+  font-weight:800;font-size:16px;background:var(--accent-faint);color:var(--accent);border:1px solid var(--accent-ring)}
+.tmain{flex:1;min-width:0}
+.tname{font-weight:700;font-size:15px}.tsub{font-size:12.5px;color:var(--text-muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tstats{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end;flex:0 0 auto}
+.badge{font-size:11.5px;font-weight:600;padding:3px 9px;border-radius:99px;border:1px solid var(--border);color:var(--text-muted);background:var(--surface-2);white-space:nowrap}
+.badge.ok{color:var(--good);background:var(--good-bg);border-color:rgba(45,200,110,.3)}
+.badge.no{color:var(--warn);background:rgba(245,181,68,.1);border-color:rgba(245,181,68,.28)}
+.badge.st{text-transform:capitalize}
+/* modal */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.62);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:18px;z-index:50}
+.overlay.show{display:flex}
+.modal{width:100%;max-width:440px;padding:24px;max-height:92vh;overflow:auto}
+.row2{display:flex;gap:10px}.row2>div{flex:1}
+.err{font-size:13px;color:var(--danger);margin-top:12px;display:none}
+.muted{color:var(--text-muted);font-size:13px}
+.cred{background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-top:10px;font-family:ui-monospace,Menlo,monospace;font-size:13px;word-break:break-all}
+.cred b{color:var(--accent);font-family:inherit}
+.hint{font-size:12px;color:var(--text-dim);margin-top:6px}
+.empty{text-align:center;color:var(--text-dim);padding:40px 20px}
+.swatch{width:34px;height:34px;border-radius:9px;border:1px solid var(--border);padding:0;cursor:pointer;background:none}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login">
+  <div class="card login-card">
+    <div class="brand">Trainer<b>OS</b></div>
+    <div class="brand-sub">База контролю</div>
+    <div class="field-label">Email</div>
+    <input class="field" id="l-email" type="email" autocomplete="username" placeholder="super@traineros.app">
+    <div class="field-label">Пароль</div>
+    <input class="field" id="l-pass" type="password" autocomplete="current-password" placeholder="••••••••">
+    <button class="btn btn-primary" style="width:100%;margin-top:18px" id="l-btn" onclick="doLogin()">Увійти</button>
+    <div class="err" id="l-err"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" class="wrap" hidden>
+  <div class="top">
+    <div><div class="brand">Trainer<b>OS</b></div><div class="brand-sub">База контролю</div></div>
+    <button class="btn btn-ghost btn-sm" onclick="doLogout()">Вийти</button>
+  </div>
+  <div class="toolbar">
+    <h1>Тренери <span class="count-pill" id="count">—</span></h1>
+    <button class="btn btn-primary btn-sm" onclick="openAdd()">＋ Додати тренера</button>
+  </div>
+  <div class="card" id="list"><div class="empty">Завантаження…</div></div>
+</div>
+
+<!-- ADD TRAINER -->
+<div class="overlay" id="add-overlay" onclick="if(event.target===this)closeAdd()">
+  <div class="card modal">
+    <h2>Новий тренер</h2>
+    <p class="muted" style="margin:6px 0 4px">Створить акаунт + кабінет. Далі тренер створює свої 2 боти й вставляє токен у «Мій бот».</p>
+    <div class="row2">
+      <div><div class="field-label">Бренд</div><input class="field" id="a-brand" placeholder="GREKFIT"></div>
+      <div><div class="field-label">Ім'я тренера</div><input class="field" id="a-name" placeholder="Роман"></div>
+    </div>
+    <div class="field-label">Slug (лат., у посиланнях)</div>
+    <input class="field" id="a-slug" placeholder="grekfit" autocapitalize="off" spellcheck="false">
+    <div class="row2" style="margin-top:0">
+      <div style="flex:2"><div class="field-label">Email для входу</div><input class="field" id="a-email" type="email" autocapitalize="off" placeholder="roman@grekfit.app"></div>
+      <div><div class="field-label">Колір</div><div style="display:flex;gap:8px;align-items:center"><input type="color" class="swatch" id="a-color" value="#8b7cff"><button class="btn btn-ghost btn-sm" style="flex:1" onclick="genPass()">Пароль ↻</button></div></div>
+    </div>
+    <div class="field-label">Пароль (передаси тренеру)</div>
+    <input class="field" id="a-pass" placeholder="мінімум 8 символів">
+    <div class="modal-actions" style="display:flex;gap:10px;margin-top:20px">
+      <button class="btn btn-ghost" style="flex:1" onclick="closeAdd()">Скасувати</button>
+      <button class="btn btn-primary" style="flex:1" id="a-btn" onclick="doCreate()">Створити</button>
+    </div>
+    <div class="err" id="a-err"></div>
+  </div>
+</div>
+
+<!-- RESULT -->
+<div class="overlay" id="res-overlay" onclick="if(event.target===this)closeRes()">
+  <div class="card modal">
+    <h2>Тренер створений ✓</h2>
+    <p class="muted" style="margin:6px 0">Передай ці дані тренеру. Пароль показуємо один раз.</p>
+    <div class="cred" id="res-cred"></div>
+    <div class="hint">Кабінет: <b id="res-admin"></b> → вхід цим email/паролем. Далі тренер відкриває «Мій бот» і вставляє токен свого клієнтського бота.</div>
+    <button class="btn btn-primary" style="width:100%;margin-top:18px" onclick="closeRes()">Готово</button>
+  </div>
+</div>
+
+<script>
+var SUPA_URL='https://owkxlpuuvmybdsfwebzo.supabase.co';
+var ANON='sb_publishable__F8TFeb5p8b8_KkMmkturQ_p1y15Dkk';
+var ADMIN_URL='https://traineros-admin.pages.dev';
+var sb=window.supabase.createClient(SUPA_URL, ANON);
+var $=function(id){return document.getElementById(id)};
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+
+async function api(action, extra){
+  var r=await sb.functions.invoke('admin-api', { body: Object.assign({action:action}, extra||{}) });
+  if(r.error){ var m=(r.error&&r.error.message)||'помилка';
+    try{ var ctx=r.error.context; if(ctx&&ctx.json){ var j=await ctx.json(); if(j&&j.error) m=j.error; } }catch(e){}
+    throw new Error(m); }
+  return r.data;
+}
+
+async function boot(){
+  var s=null; try{ s=(await sb.auth.getSession()).data.session; }catch(e){}
+  if(s){ showApp(); } else { $('login').style.display='flex'; }
+}
+function showLogin(msg){ $('app').hidden=true; $('login').style.display='flex'; if(msg){ $('l-err').textContent=msg; $('l-err').style.display='block'; } }
+async function showApp(){ $('login').style.display='none'; $('app').hidden=false; await load(); }
+
+async function doLogin(){
+  var email=($('l-email').value||'').trim(), pass=$('l-pass').value||'';
+  if(!email||!pass) return;
+  var b=$('l-btn'); b.disabled=true; b.textContent='Вхід…'; $('l-err').style.display='none';
+  try{
+    var r=await sb.auth.signInWithPassword({email:email,password:pass});
+    if(r.error) throw new Error(r.error.message);
+    // перевіримо, що це супер-адмін (admin-api поверне 403, якщо ні)
+    await api('trainers.list');
+    await showApp();
+  }catch(e){
+    try{ await sb.auth.signOut(); }catch(_){}
+    $('l-err').textContent = /forbidden/i.test(e.message)?'Цей акаунт не супер-адмін':(e.message||'Помилка входу');
+    $('l-err').style.display='block';
+  }finally{ b.disabled=false; b.textContent='Увійти'; }
+}
+async function doLogout(){ try{ await sb.auth.signOut(); }catch(e){} location.reload(); }
+
+async function load(){
+  try{
+    var d=await api('trainers.list'); var ts=d.trainers||[];
+    $('count').textContent=ts.length;
+    if(!ts.length){ $('list').innerHTML='<div class="empty">Ще немає тренерів. Натисни «Додати тренера».</div>'; return; }
+    $('list').innerHTML=ts.map(function(t){
+      var initial=esc((t.brand_name||'?').trim().charAt(0).toUpperCase());
+      var botBadge=t.bot_connected?'<span class="badge ok">бот ✓</span>':'<span class="badge no">бот ✗</span>';
+      var uname=t.client_bot_username?('@'+esc(t.client_bot_username)):'бот не вказано';
+      return '<div class="trow"><div class="tava">'+initial+'</div>'
+        +'<div class="tmain"><div class="tname">'+esc(t.brand_name)+' · '+esc(t.trainer_name)+'</div>'
+        +'<div class="tsub">'+esc(t.slug)+' · '+uname+'</div></div>'
+        +'<div class="tstats">'+botBadge
+        +'<span class="badge">'+t.clients_count+' клієнт.</span>'
+        +'<span class="badge st">'+esc(t.platform_status||'—')+'</span></div></div>';
+    }).join('');
+  }catch(e){ if(/forbidden|unauthorized/i.test(e.message)){ showLogin('Сесія завершилась або не супер-адмін'); } else { $('list').innerHTML='<div class="empty">Помилка: '+esc(e.message)+'</div>'; } }
+}
+
+function rndPass(){ var a='ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789'; var s=''; for(var i=0;i<12;i++) s+=a[Math.floor(Math.random()*a.length)]; return s; }
+function genPass(){ $('a-pass').value=rndPass(); }
+function slugify(s){ return (s||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,32); }
+function openAdd(){
+  ['a-brand','a-name','a-slug','a-email','a-pass'].forEach(function(id){$(id).value=''});
+  $('a-color').value='#8b7cff'; $('a-err').style.display='none';
+  $('add-overlay').classList.add('show'); $('a-brand').focus();
+}
+function closeAdd(){ $('add-overlay').classList.remove('show'); }
+// авто-slug із бренду, поки slug не чіпали руками
+$('a-brand').addEventListener('input',function(){ if(!$('a-slug').dataset.touched) $('a-slug').value=slugify($('a-brand').value); });
+$('a-slug').addEventListener('input',function(){ $('a-slug').dataset.touched='1'; });
+
+async function doCreate(){
+  var payload={
+    brand_name:($('a-brand').value||'').trim(), trainer_name:($('a-name').value||'').trim(),
+    slug:slugify($('a-slug').value), email:($('a-email').value||'').trim().toLowerCase(),
+    password:$('a-pass').value||'', accent_color:$('a-color').value,
+  };
+  if(!payload.password){ payload.password=rndPass(); }
+  var b=$('a-btn'); b.disabled=true; b.textContent='Створення…'; $('a-err').style.display='none';
+  try{
+    var r=await api('trainer.create', payload);
+    closeAdd();
+    $('res-cred').innerHTML='Email: <b>'+esc(payload.email)+'</b><br>Пароль: <b>'+esc(payload.password)+'</b><br>Slug: <b>'+esc(r.slug)+'</b>';
+    $('res-admin').textContent=ADMIN_URL;
+    $('res-overlay').classList.add('show');
+    await load();
+  }catch(e){ $('a-err').textContent=e.message||'Помилка'; $('a-err').style.display='block'; }
+  finally{ b.disabled=false; b.textContent='Створити'; }
+}
+function closeRes(){ $('res-overlay').classList.remove('show'); }
+
+$('l-pass').addEventListener('keydown',function(e){ if(e.key==='Enter') doLogin(); });
+boot();
+</script>
+</body>
+</html>

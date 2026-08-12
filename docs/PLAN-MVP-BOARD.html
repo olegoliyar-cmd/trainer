@@ -1,0 +1,473 @@
+<title>TrainerOS — MVP Launch Board</title>
+<style>
+  :root{
+    --bg:#F5F6F2; --surface:#FFFFFF; --surface-2:#EEF0EA; --line:#DFE2DA;
+    --text:#171A16; --muted:#5C625B; --faint:#8A9088;
+    --accent:#5F8000; --accent-ink:#FFFFFF; --accent-soft:rgba(95,128,0,.12);
+    --done:#1E9E52; --doing:#B7791F; --todo:#8A9088;
+    --shadow:0 14px 34px -24px rgba(20,30,15,.5);
+    --font-disp:"Arial Narrow","Helvetica Neue",system-ui,sans-serif;
+    --font-body:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --font-mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --bg:#0B0C0E; --surface:#141619; --surface-2:#1B1E22; --line:#2A2E34;
+      --text:#ECEEE8; --muted:#969C99; --faint:#6C726F;
+      --accent:#E4F82B; --accent-ink:#12140A; --accent-soft:rgba(228,248,43,.10);
+      --done:#4ADE80; --doing:#FBBF24; --todo:#7C8591;
+      --shadow:0 18px 40px -26px rgba(0,0,0,.8);
+    }
+  }
+  :root[data-theme="light"]{
+    --bg:#F5F6F2; --surface:#FFFFFF; --surface-2:#EEF0EA; --line:#DFE2DA;
+    --text:#171A16; --muted:#5C625B; --faint:#8A9088;
+    --accent:#5F8000; --accent-ink:#FFFFFF; --accent-soft:rgba(95,128,0,.12);
+    --done:#1E9E52; --doing:#B7791F; --todo:#8A9088; --shadow:0 14px 34px -24px rgba(20,30,15,.5);
+  }
+  :root[data-theme="dark"]{
+    --bg:#0B0C0E; --surface:#141619; --surface-2:#1B1E22; --line:#2A2E34;
+    --text:#ECEEE8; --muted:#969C99; --faint:#6C726F;
+    --accent:#E4F82B; --accent-ink:#12140A; --accent-soft:rgba(228,248,43,.10);
+    --done:#4ADE80; --doing:#FBBF24; --todo:#7C8591; --shadow:0 18px 40px -26px rgba(0,0,0,.8);
+  }
+
+  *{box-sizing:border-box}
+  body{background:var(--bg);color:var(--text);font-family:var(--font-body);line-height:1.5;
+    -webkit-font-smoothing:antialiased;margin:0}
+  .wrap{max-width:940px;margin:0 auto;padding:32px 20px 80px}
+  ::selection{background:var(--accent);color:var(--accent-ink)}
+
+  .eyebrow{font-family:var(--font-disp);text-transform:uppercase;letter-spacing:.16em;
+    font-size:12px;font-weight:700;color:var(--accent);margin:0 0 8px}
+  h1{font-family:var(--font-disp);text-transform:uppercase;letter-spacing:.01em;font-stretch:condensed;
+    font-weight:800;font-size:clamp(30px,6vw,46px);line-height:.98;margin:0;text-wrap:balance}
+  .goal{color:var(--muted);font-size:14.5px;margin:12px 0 0;max-width:60ch}
+  .goal b{color:var(--text);font-weight:700}
+
+  /* Header */
+  .head{background:var(--surface);border:1px solid var(--line);border-radius:20px;
+    padding:26px 26px 22px;box-shadow:var(--shadow);margin-bottom:22px}
+  .head-top{display:flex;gap:24px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+  .head-top>div:first-child{flex:1;min-width:240px}
+
+  .ring{--pct:0;position:relative;width:120px;height:120px;flex:0 0 auto;border-radius:50%;
+    background:conic-gradient(var(--accent) calc(var(--pct)*1%),var(--surface-2) 0);
+    display:grid;place-items:center}
+  .ring::before{content:"";position:absolute;inset:11px;border-radius:50%;background:var(--surface);
+    border:1px solid var(--line)}
+  .ring-in{position:relative;text-align:center;line-height:1}
+  .ring-pct{font-family:var(--font-disp);font-weight:800;font-size:30px;font-variant-numeric:tabular-nums}
+  .ring-lab{font-size:9.5px;text-transform:uppercase;letter-spacing:.14em;color:var(--muted);margin-top:3px}
+
+  .stat-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px;padding-top:18px;border-top:1px solid var(--line)}
+  .stat{flex:1 1 130px;background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:11px 13px}
+  .stat .n{font-family:var(--font-disp);font-weight:800;font-size:22px;font-variant-numeric:tabular-nums;line-height:1}
+  .stat .l{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-top:5px}
+  .stat.done .n{color:var(--done)} .stat.doing .n{color:var(--doing)} .stat.todo .n{color:var(--todo)}
+  .stat.date .n{color:var(--accent);font-size:15px;padding-top:5px}
+
+  /* Locked decisions */
+  details.locked{background:var(--surface);border:1px solid var(--line);border-radius:16px;
+    padding:4px 18px;margin-bottom:22px}
+  details.locked summary{cursor:pointer;list-style:none;padding:14px 0;font-family:var(--font-disp);
+    text-transform:uppercase;letter-spacing:.08em;font-weight:700;font-size:13px;display:flex;
+    align-items:center;gap:10px}
+  details.locked summary::-webkit-details-marker{display:none}
+  details.locked summary::before{content:"▸";color:var(--accent);transition:transform .2s;font-size:11px}
+  details.locked[open] summary::before{transform:rotate(90deg)}
+  .chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:9px;padding:4px 0 18px}
+  .chip{background:var(--surface-2);border:1px solid var(--line);border-radius:11px;padding:10px 12px;font-size:12.5px}
+  .chip b{display:block;font-family:var(--font-disp);text-transform:uppercase;letter-spacing:.04em;
+    font-size:11px;color:var(--accent);margin-bottom:3px}
+  .chip span{color:var(--muted)}
+
+  /* Phases */
+  .sec-label{font-family:var(--font-disp);text-transform:uppercase;letter-spacing:.12em;font-size:12px;
+    font-weight:700;color:var(--faint);margin:30px 4px 12px}
+  .phases{display:flex;flex-direction:column;gap:14px}
+  .phase{background:var(--surface);border:1px solid var(--line);border-radius:18px;overflow:hidden}
+  .phase-head{display:grid;grid-template-columns:auto 1fr auto;gap:16px;align-items:center;
+    padding:18px 20px;border-bottom:1px solid var(--line)}
+  .pnum{font-family:var(--font-disp);font-weight:800;font-size:26px;font-variant-numeric:tabular-nums;
+    color:var(--accent);line-height:1;min-width:34px}
+  .phase-titles{min-width:0}
+  .phase-titles h2{font-family:var(--font-disp);text-transform:uppercase;letter-spacing:.01em;
+    font-weight:800;font-size:19px;margin:0;display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+  .tag{font-family:var(--font-body);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;
+    padding:2px 8px;border-radius:999px;background:var(--accent-soft);color:var(--accent);letter-spacing:.05em}
+  .donedef{color:var(--muted);font-size:12.5px;margin:5px 0 0}
+  .donedef b{color:var(--text);font-weight:600}
+  .phase-prog{text-align:right;min-width:74px}
+  .pp-pct{font-family:var(--font-disp);font-weight:800;font-size:15px;font-variant-numeric:tabular-nums;color:var(--muted)}
+  .pp-bar{height:5px;border-radius:3px;background:var(--surface-2);margin-top:6px;overflow:hidden;width:74px}
+  .pp-bar i{display:block;height:100%;width:0;background:var(--accent);border-radius:3px;transition:width .35s ease}
+  .phase.complete .pp-pct{color:var(--done)} .phase.complete .pp-bar i{background:var(--done)}
+
+  .items{list-style:none;margin:0;padding:6px 0}
+  .item{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:start;padding:9px 20px;
+    border-top:1px solid transparent}
+  .item+.item{border-top-color:var(--line)}
+  .status-chip{flex:0 0 auto;display:inline-flex;align-items:center;gap:7px;cursor:pointer;
+    background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:5px 11px 5px 9px;
+    font-family:var(--font-disp);text-transform:uppercase;letter-spacing:.05em;font-size:10.5px;font-weight:700;
+    color:var(--muted);white-space:nowrap;transition:border-color .15s,background .15s;min-width:96px}
+  .status-chip .dot{width:9px;height:9px;border-radius:50%;background:var(--todo);flex:0 0 auto;transition:background .15s}
+  .item[data-status="doing"] .dot{background:var(--doing)}
+  .item[data-status="done"] .dot{background:var(--done)}
+  .item[data-status="doing"] .status-chip{color:var(--doing);border-color:color-mix(in srgb,var(--doing) 45%,var(--line))}
+  .item[data-status="done"] .status-chip{color:var(--done);border-color:color-mix(in srgb,var(--done) 45%,var(--line))}
+  .status-chip:hover{border-color:var(--accent)}
+  .item-main{min-width:0}
+  .item-text{display:block;font-size:14px}
+  .item[data-status="done"] .item-text{color:var(--muted);text-decoration:line-through;text-decoration-color:color-mix(in srgb,var(--done) 55%,transparent)}
+  .note{display:block;font-size:11.5px;color:var(--faint);margin-top:2px}
+  .cmt-toggle{display:inline-flex;align-items:center;gap:5px;margin-top:5px;background:none;border:0;cursor:pointer;
+    color:var(--faint);font-size:11.5px;font-family:var(--font-body);padding:0}
+  .cmt-toggle:hover{color:var(--accent)}
+  .cmt-toggle.has::after{content:"";width:6px;height:6px;border-radius:50%;background:var(--accent)}
+  .cmt{margin-top:8px}
+  .cmt textarea{width:100%;background:var(--surface-2);border:1px solid var(--line);color:var(--text);
+    border-radius:10px;padding:9px 11px;font-family:var(--font-body);font-size:13px;resize:vertical;min-height:52px}
+  .cmt textarea:focus{outline:none;border-color:var(--accent)}
+  [hidden]{display:none!important}
+
+  /* Parked decisions */
+  .parked{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--doing);
+    border-radius:14px;padding:18px 20px;margin-top:14px}
+  .parked h3{font-family:var(--font-disp);text-transform:uppercase;letter-spacing:.06em;font-size:14px;
+    font-weight:800;margin:0 0 4px;color:var(--doing)}
+  .parked p.sub{color:var(--muted);font-size:12.5px;margin:0 0 12px}
+  .parked ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}
+  .parked li{font-size:13.5px;padding-left:18px;position:relative}
+  .parked li::before{content:"◇";position:absolute;left:0;color:var(--doing)}
+  .parked li b{font-weight:700}
+
+  /* Timeline */
+  .timeline{display:grid;grid-template-columns:repeat(5,1fr);gap:9px;margin-top:14px}
+  .day{background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:13px 12px}
+  .day .d{font-family:var(--font-disp);font-weight:800;text-transform:uppercase;letter-spacing:.06em;
+    font-size:11px;color:var(--accent);margin-bottom:7px}
+  .day .t{font-size:12px;color:var(--muted);line-height:1.4}
+  .day .t b{color:var(--text);font-weight:600}
+
+  /* Footer */
+  footer{margin-top:30px;padding-top:18px;border-top:1px solid var(--line);
+    display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}
+  footer p{color:var(--faint);font-size:12px;margin:0;max-width:56ch}
+  .reset{background:var(--surface-2);border:1px solid var(--line);color:var(--muted);cursor:pointer;
+    border-radius:9px;padding:8px 13px;font-family:var(--font-body);font-size:12px;transition:.15s}
+  .reset:hover{border-color:var(--doing);color:var(--doing)}
+
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+  @media (max-width:620px){
+    .wrap{padding:22px 14px 70px}
+    .timeline{grid-template-columns:1fr 1fr}
+    .phase-head{grid-template-columns:auto 1fr;row-gap:12px}
+    .phase-prog{grid-column:1/-1;text-align:left;display:flex;align-items:center;gap:12px}
+    .phase-prog .pp-bar{width:100%;flex:1}
+    .item{grid-template-columns:1fr;gap:8px}
+    .status-chip{align-self:flex-start}
+  }
+</style>
+
+<main class="wrap">
+  <header class="head">
+    <div class="head-top">
+      <div>
+        <p class="eyebrow">TrainerOS · єдиний план до запуску</p>
+        <h1>MVP Launch Board</h1>
+        <p class="goal">Довести базу до готовності, провести першу зустріч і продати сервіс новому тренеру за <b>$490 setup + $89/міс</b>. Ціль — <b>~5 днів</b> (обсяг фіксований, дата гнеться). Роман — безкоштовний дизайн-партнер і референс.</p>
+      </div>
+      <div class="ring" id="ring">
+        <div class="ring-in"><div class="ring-pct" id="ringPct">0%</div><div class="ring-lab">готовність</div></div>
+      </div>
+    </div>
+    <div class="stat-row">
+      <div class="stat done"><div class="n" id="cDone">0</div><div class="l">Готово</div></div>
+      <div class="stat doing"><div class="n" id="cDoing">0</div><div class="l">В роботі</div></div>
+      <div class="stat todo"><div class="n" id="cTodo">0</div><div class="l">Треба</div></div>
+      <div class="stat date"><div class="n">9 етапів · 5 днів</div><div class="l">Ворота: усе до зустрічі</div></div>
+    </div>
+  </header>
+
+  <details class="locked">
+    <summary>8 зафіксованих рішень</summary>
+    <div class="chips">
+      <div class="chip"><b>Перший платний</b><span>Новий тренер. Роман — партнер/референс.</span></div>
+      <div class="chip"><b>Гроші</b><span>Фікс $89/міс. Метеринг/баланс — потім.</span></div>
+      <div class="chip"><b>White-label</b><span>Бренд-база: лого/ім'я/колір/сплеш. Спільний домен.</span></div>
+      <div class="chip"><b>Онбординг</b><span>Спершу ручний чек-лист → далі напівавто-майстер.</span></div>
+      <div class="chip"><b>Безпека</b><span>Прагматичний внутрішній аудит. Без пентесту.</span></div>
+      <div class="chip"><b>Артефакт</b><span>Цей живий борд. Продажний дек — окремо.</span></div>
+      <div class="chip"><b>Ворота</b><span>Усі 9 етапів готові до першої зустрічі.</span></div>
+      <div class="chip"><b>Трикутник</b><span>Обсяг фіксований, дата гнеться.</span></div>
+    </div>
+  </details>
+
+  <div class="sec-label">Етапи бази</div>
+  <section class="phases" id="phases">
+
+    <article class="phase" data-phase>
+      <div class="phase-head">
+        <span class="pnum">01</span>
+        <div class="phase-titles">
+          <h2>Реальний тест <span class="tag">паралельно</span></h2>
+          <p class="donedef"><b>Готово:</b> усі зауваження Романа закриті або свідомо відкладені.</p>
+        </div>
+        <div class="phase-prog"><span class="pp-pct">0%</span><div class="pp-bar"><i></i></div></div>
+      </div>
+      <ul class="items">
+        <li class="item" data-id="p1-1" data-status="doing"><button class="status-chip"><span class="dot"></span><span class="lab"></span></button><div class="item-main"><span class="item-text">Роман створює повну програму тренувань у білдері</span></div></li>
+        <li class="item" data-id="p1-2" data-status="todo"><button class="status-chip"><span class="dot"></span><span class="lab"></span></button><div class="item-main"><span class="item-text">Роман проходить клієнтський флоу як демо-клієнт</span></div></li>
+        <li class="item" data-id="p1-3" data-status="todo"><button class="status-chip"><span class="dot"></span><span class="lab"></span></button><div class="item-main"><span class="item-text">Зібрати список «де бракує / працює недобре»</span></div></li>
+        <li class="item" data-id="p1-4" data-status="todo"><button class="status-chip"><span class="dot"></span><span class="lab"></span></button><div class="item-main"><span class="item-text">Закрити зібрані зауваження</span></div></li>
+      </ul>
+    </article>
+
+    <article class="phase" data-phase>
+      <div class="phase-head">
+        <span class="pnum">02</span>
+        <div class="phase-titles">
+          <h2>Базові функції</h2>
+          <p class="donedef"><b>Готово:</b> кожен потік проходиться без збоїв, логіка вибудувана.</p>
+        </div>
+        <div class="phase-prog"><span class="pp-pct">0%</span><div class="pp-bar"><i></i></div></div>
+      </div>
+      <ul class="items">
+        <li class="item" data-id="p2-1" data-status="todo"><button class="status-chip"><span class="dot"></span><span class="lab"></span></button><div class="item-main"><span class="item-text">Розбори техніки: відео → скріни → відповідь</span></div></li>
+        <li class="item" data-id="p2-2" data-status="todo"><button class="status-chip"><span class="dot"></span><span class="lab"></span></button><div class="item-main"><span class="item-text">Щоденний звіт-квіз: конфіг, скоринг, таблиця тренера</span></div></li>
+        <li class="item" data-id="p2-3" data-status="todo"><button class="status-chip"><span class="dot"></span><span class="lab"></span></button><div class="item-main"><span class="item-text">Графік тренувань + крони нагадувань</span></div></li>
+        <li class="item" data-id="p2-4" data-status="todo"><button class="status-chip"><span class="dot"></span><span class="lab"></span></button><div class="item-main"><span class="item-text">Голосові чек-іни: транскрипт + саммарі</span></div></li>
+        <li class="item" data-id="p2-5" data-status="todo"><button class="status-chip"><span class="dot"></span><span class="lab"></span></button><div class="item-main"><span class="item-text">Харчування (пошук / фото / голос AI) + фото тренеру</span></div></li>
+        <li class="item" data-id="p2-6" data-status="todo"><button class="status-chip"><span class="dot"></span><span class="lab"></span></button><div class="item-main"><span class="item-text">Прогрес: заміри + фото по точках, повна якість</span></div></li>
+        <li class="item" data-id="p2-7" data-status="done"><button class="status-chip"><span class="dot"></span><span class="lab"></span></button><div class="item-main"><span class="item-text">Календар/зустрічі (Meet · Zoom · Jitsi)</span><span class="note">Оновлено 15.07 — редизайн + вибір платформи.</span></div></li>
+        <li class="item" data-id="p2-8" data-status="todo"><button class="status-chip"><span class="dot"></span><span class="lab"></span></button><div class="item-main"><span class="item-text">Виправити крони UTC+3 (зимовий час зсуває на годину)</span></div></li>
+      </ul>
+    </article>
+
+    <article class="phase" data-phase>
+      <div class="phase-head">
+        <span class="pnum">03</span>
+        <div class="phase-titles">
+          <h2>UI/UX усіх поверхонь</h2>
+          <p class="donedef"><b>Готово:</b> твій підпис «це воно» по кожному екрану (є PLAN-REVIEW-SESSION).</p>
+        </div>
+        <div class="phase-prog"><span class="pp-pct">0%</span><div class="pp-bar"><i></i></div></div>
+      </div>
+      <ul class="items">
+        <li class="item" data-id="p3-1" data-status="todo"><button class="status-chip"><span class="dot"></span><span class="lab"></span></button><div class="item-main"><span class="item-text">Клієнт (моб) — екран за екраном</span></div></li>
+        <li class="item" data-id="p3-2" data-status="todo"><button class="status-chip"><span class="dot"></span><span class="lab"></span></button><div class="item-main"><span class="item-text">Тренер моб (Mini App) — екран за екраном</span></div></li>
+        <li class="item" data-id="p3-3" data-status="todo"><button class="status-chip"><span class="dot"></span><span class="lab"></span></button><div class="item-main"><span class="item-text">Тренер веб (десктоп) — екран за екраном</span></div></li>
+        <li class="item" data-id="p3-4" data-status="todo"><button class="status-chip"><span class="dot"></span><span class="lab"></span></button><div class="item-main"><span class="item-text">Safe-area, мертві «Незабаром», однакові відступи</span></div></li>
+      </ul>
+    </article>
+
+    <article class="phase" data-phase>
+      <div class="phase-head">
+        <span class="pnum">04</span>
+        <div class="phase-titles">
+          <h2>Персоналізація / white-label</h2>
+          <p class="donedef"><b>Готово:</b> новий тренер виглядає «своїм», нуль GrekFit.</p>
+        </div>
+        <div class="phase-prog"><span class="pp-pct">0%</span><div class="pp-bar"><i></i></div></div>
+      </div>
+      <ul class="items">
+        <li class="item" data-id="p4-1" data-status="todo"><button class="status-chip"><span class="dot"></span><span class="lab"></span></button><div class="item-main"><span class="item-text">Сплеш: лого + ім'я тренера з конфіга (прибрати GrekFit-анімацію)</span></div></li>
+        <li class="item" data-id="p4-2" data-status="todo"><button class="status-chip"><span class="dot"></span><span class="lab"></span></button><div class="item-main"><span class="item-text">Акцент-колір і назва застосунку з рядка trainers</span></div></li>
+        <li class="item" data-id="p4-3" data-status="todo"><button class="status-chip"><span class="dot"></span><span class="lab"></span></button><div class="item-main"><span class="item-text">Місце під лого в шапці адмінки й клієнта</span></div></li>
+        <li class="item" data-id="p4-4" data-status="todo"><button class="status-chip"><span class="dot"></span><span class="lab"></span></button><div class="item-main"><span class="item-text">Клієнт-бот тренера підв'язаний і перевірений</span></div></li>
+      </ul>
+    </article>
+
+    <article class="phase" data-phase>
+      <div class="phase-head">
+        <span class="pnum">05</span>
+        <div class="phase-titles">
+          <h2>Інфра + онбординг</h2>
+          <p class="donedef"><b>Готово:</b> піднято реального тест-тренера з нуля за чек-листом.</p>
+        </div>
+        <div class="phase-prog"><span class="pp-pct">0%</span><div class="pp-bar"><i></i></div></div>
+      </div>
+      <ul class="items">
+        <li class="item" data-id="p5-1" data-status="todo"><button class="status-chip"><span class="dot"></span><span class="lab"></span></button><div class="item-main"><span class="item-text">Чек-лист онбордингу: що від тренера / що від тебе</span></div></li>
+        <li class="item" data-id="p5-2" data-status="todo"><button class="status-chip"><span class="dot"></span><span class="lab"></span></button><div class="item-main"><span class="item-text">Крок: токен клієнт-бота → setWebhook</span></div></li>
+        <li class="item" data-id="p5-3" data-status="todo"><button class="status-chip"><span class="dot"></span><span class="lab"></span></button><div class="item-main"><span class="item-text">Крок: лого/бренд → Storage; Bunny-колекція тренера</span></div></li>
+        <li class="item" data-id="p5-4" data-status="todo"><button class="status-chip"><span class="dot"></span><span class="lab"></span></button><div class="item-main"><span class="item-text">Підняти тест-тренера end-to-end (в1 — ручний)</span></div></li>
+        <li class="item" data-id="p5-5" data-status="todo"><button class="status-chip"><span class="dot"></span><span class="lab"></span></button><div class="item-main"><span class="item-text">Далі: напівавто-майстер у /super (в2)</span><span class="note">Наступна ітерація після ручного.</span></div></li>
+      </ul>
+    </article>
+
+    <article class="phase" data-phase>
+      <div class="phase-head">
+        <span class="pnum">06</span>
+        <div class="phase-titles">
+          <h2>Супер-адмін кабінет</h2>
+          <p class="donedef"><b>Готово:</b> бачиш усіх тренерів і їхню готовність з одного місця.</p>
+        </div>
+        <div class="phase-prog"><span class="pp-pct">0%</span><div class="pp-bar"><i></i></div></div>
+      </div>
+      <ul class="items">
+        <li class="item" data-id="p6-1" data-status="doing"><button class="status-chip"><span class="dot"></span><span class="lab"></span></button><div class="item-main"><span class="item-text">Реєстр тренерів</span><span class="note">Існує на /super — доповнити індикаторами.</span></div></li>
+        <li class="item" data-id="p6-2" data-status="todo"><button class="status-chip"><span class="dot"></span><span class="lab"></span></button><div class="item-main"><span class="item-text">Індикатори: боти ✓ · вебхук ✓ · Bunny ✓</span></div></li>
+        <li class="item" data-id="p6-3" data-status="todo"><button class="status-chip"><span class="dot"></span><span class="lab"></span></button><div class="item-main"><span class="item-text">Ручний статус оплати (сплатив / ні, наступна дата)</span></div></li>
+        <li class="item" data-id="p6-4" data-status="todo"><button class="status-chip"><span class="dot"></span><span class="lab"></span></button><div class="item-main"><span class="item-text">Перегляд ключів/конфіга + «чого бракує» на тренера</span></div></li>
+      </ul>
+    </article>
+
+    <article class="phase" data-phase>
+      <div class="phase-head">
+        <span class="pnum">07</span>
+        <div class="phase-titles">
+          <h2>Фінансова модель</h2>
+          <p class="donedef"><b>Готово:</b> чернетка з реальними цифрами (собівартість, беззбитковість, проєкція).</p>
+        </div>
+        <div class="phase-prog"><span class="pp-pct">0%</span><div class="pp-bar"><i></i></div></div>
+      </div>
+      <ul class="items">
+        <li class="item" data-id="p7-1" data-status="todo"><button class="status-chip"><span class="dot"></span><span class="lab"></span></button><div class="item-main"><span class="item-text">Собівартість 1 тренера/міс (Supabase · Bunny · AI · CF)</span></div></li>
+        <li class="item" data-id="p7-2" data-status="todo"><button class="status-chip"><span class="dot"></span><span class="lab"></span></button><div class="item-main"><span class="item-text">Беззбитковість vs $89; маржа</span></div></li>
+        <li class="item" data-id="p7-3" data-status="todo"><button class="status-chip"><span class="dot"></span><span class="lab"></span></button><div class="item-main"><span class="item-text">Проєкція на 10 тренерів (~$4.9k setup + ~$890/міс)</span></div></li>
+        <li class="item" data-id="p7-4" data-status="todo"><button class="status-chip"><span class="dot"></span><span class="lab"></span></button><div class="item-main"><span class="item-text">Обґрунтування ціни setup $490–500</span></div></li>
+      </ul>
+    </article>
+
+    <article class="phase" data-phase>
+      <div class="phase-head">
+        <span class="pnum">08</span>
+        <div class="phase-titles">
+          <h2>Безпека</h2>
+          <p class="donedef"><b>Готово:</b> нема міжтенантних витоків, ключі оновлені.</p>
+        </div>
+        <div class="phase-prog"><span class="pp-pct">0%</span><div class="pp-bar"><i></i></div></div>
+      </div>
+      <ul class="items">
+        <li class="item" data-id="p8-1" data-status="todo"><button class="status-chip"><span class="dot"></span><span class="lab"></span></button><div class="item-main"><span class="item-text">Ротація засвічених ключів (OpenAI · Anthropic · інші)</span></div></li>
+        <li class="item" data-id="p8-2" data-status="todo"><button class="status-chip"><span class="dot"></span><span class="lab"></span></button><div class="item-main"><span class="item-text">Аудит RLS: кожен edge-endpoint + бакет на міжтенантні витоки</span></div></li>
+        <li class="item" data-id="p8-3" data-status="todo"><button class="status-chip"><span class="dot"></span><span class="lab"></span></button><div class="item-main"><span class="item-text">Перевірка авторизації (чужий JWT → 401/403)</span></div></li>
+        <li class="item" data-id="p8-4" data-status="done"><button class="status-chip"><span class="dot"></span><span class="lab"></span></button><div class="item-main"><span class="item-text">Секрети server-side + бюджетні стелі AI</span><span class="note">Стелі вже стоять; підтвердити в аудиті.</span></div></li>
+      </ul>
+    </article>
+
+    <article class="phase" data-phase>
+      <div class="phase-head">
+        <span class="pnum">09</span>
+        <div class="phase-titles">
+          <h2>Продажний дек <span class="tag">окремий деліверабл</span></h2>
+          <p class="donedef"><b>Готово:</b> дек, готовий показати на зустрічі.</p>
+        </div>
+        <div class="phase-prog"><span class="pp-pct">0%</span><div class="pp-bar"><i></i></div></div>
+      </div>
+      <ul class="items">
+        <li class="item" data-id="p9-1" data-status="todo"><button class="status-chip"><span class="dot"></span><span class="lab"></span></button><div class="item-main"><span class="item-text">Болі тренерів — структура</span></div></li>
+        <li class="item" data-id="p9-2" data-status="todo"><button class="status-chip"><span class="dot"></span><span class="lab"></span></button><div class="item-main"><span class="item-text">Кожна фіча як рішення конкретного болю</span></div></li>
+        <li class="item" data-id="p9-3" data-status="todo"><button class="status-chip"><span class="dot"></span><span class="lab"></span></button><div class="item-main"><span class="item-text">Ціна: чому $490 + $89 і чому воно того варте</span></div></li>
+        <li class="item" data-id="p9-4" data-status="todo"><button class="status-chip"><span class="dot"></span><span class="lab"></span></button><div class="item-main"><span class="item-text">Зібрати дек, готовий до показу</span></div></li>
+      </ul>
+    </article>
+
+  </section>
+
+  <div class="sec-label">Відкриті рішення — парковка</div>
+  <div class="parked">
+    <h3>Ще думаєш · не блокує роботу</h3>
+    <p class="sub">Порахуємо/закриємо по ходу; на борді, щоб не загубилось.</p>
+    <ul>
+      <li><b>Ціна:</b> $490 vs $500 setup · $89 vs $99/міс.</li>
+      <li><b>Реальна модель recurring</b> (метеринг / кредити) — рішення після першого продажу.</li>
+      <li><b>Хто конкретно</b> перший тренер (лід) — залежить від того, хто першим погодиться на зустріч.</li>
+    </ul>
+  </div>
+
+  <div class="sec-label">Пропонована послідовність · ціль 5 днів</div>
+  <div class="timeline">
+    <div class="day"><div class="d">День 1–2</div><div class="t"><b>База + UI/UX</b> (етапи 2·3), вливаючи фідбек Романа</div></div>
+    <div class="day"><div class="d">День 2–3</div><div class="t"><b>White-label</b> (етап 4)</div></div>
+    <div class="day"><div class="d">День 3–4</div><div class="t"><b>Інфра + супер-адмін</b> (5·6), підняти тест-тренера</div></div>
+    <div class="day"><div class="d">День 4</div><div class="t"><b>Фінмодель</b> (7) — паралельно</div></div>
+    <div class="day"><div class="d">День 5</div><div class="t"><b>Безпека</b> (8) + полиш. Дек (9) — раніше паралельно</div></div>
+  </div>
+
+  <footer>
+    <p>Клікай статус (Треба → В роботі → Готово) і лишай коментарі — вони зберігаються у твоєму браузері. Авторський план оновлюю я, Claude, і перепубліковую на цей же URL. Оновлено вручну: 15.07.2026.</p>
+    <button class="reset" id="resetBtn">↺ Скинути мої позначки</button>
+  </footer>
+</main>
+
+<script>
+(function(){
+  var KEY="traineros_mvp_board_v1";
+  var LABELS={todo:"Треба",doing:"В роботі",done:"Готово"};
+  var ORDER=["todo","doing","done"];
+  var store={status:{},comments:{}};
+  try{var raw=localStorage.getItem(KEY); if(raw) store=JSON.parse(raw);}catch(e){}
+  store.status=store.status||{}; store.comments=store.comments||{};
+  function save(){ try{localStorage.setItem(KEY,JSON.stringify(store));}catch(e){} }
+
+  var items=Array.prototype.slice.call(document.querySelectorAll(".item"));
+
+  items.forEach(function(li){
+    var id=li.getAttribute("data-id");
+    // apply saved status override
+    if(store.status[id]) li.setAttribute("data-status",store.status[id]);
+    var chip=li.querySelector(".status-chip");
+    var lab=li.querySelector(".lab");
+    function paintChip(){ lab.textContent=LABELS[li.getAttribute("data-status")]||"Треба";
+      chip.setAttribute("aria-label","Статус: "+lab.textContent+". Натисни, щоб змінити."); }
+    paintChip();
+    chip.addEventListener("click",function(){
+      var cur=li.getAttribute("data-status")||"todo";
+      var next=ORDER[(ORDER.indexOf(cur)+1)%ORDER.length];
+      li.setAttribute("data-status",next); store.status[id]=next; save(); paintChip(); recompute();
+    });
+
+    // comment UI
+    var main=li.querySelector(".item-main");
+    var toggle=document.createElement("button");
+    toggle.className="cmt-toggle"; toggle.type="button";
+    var box=document.createElement("div"); box.className="cmt"; box.hidden=true;
+    var ta=document.createElement("textarea");
+    ta.placeholder="Твій коментар…"; ta.value=store.comments[id]||"";
+    box.appendChild(ta);
+    function refreshToggle(){ var has=!!(store.comments[id]&&store.comments[id].trim());
+      toggle.textContent=has?"коментар":"＋ коментар"; toggle.classList.toggle("has",has); }
+    refreshToggle();
+    toggle.addEventListener("click",function(){ box.hidden=!box.hidden; if(!box.hidden) ta.focus(); });
+    ta.addEventListener("input",function(){ store.comments[id]=ta.value; save(); refreshToggle(); });
+    main.appendChild(toggle); main.appendChild(box);
+    if(store.comments[id]&&store.comments[id].trim()) box.hidden=false;
+  });
+
+  function recompute(){
+    var total=items.length, done=0, doing=0, todo=0, score=0;
+    items.forEach(function(li){
+      var s=li.getAttribute("data-status")||"todo";
+      if(s==="done"){done++;score+=1;} else if(s==="doing"){doing++;score+=0.5;} else {todo++;}
+    });
+    var pct=total?Math.round(score/total*100):0;
+    var ring=document.getElementById("ring");
+    ring.style.setProperty("--pct",pct);
+    document.getElementById("ringPct").textContent=pct+"%";
+    document.getElementById("cDone").textContent=done;
+    document.getElementById("cDoing").textContent=doing;
+    document.getElementById("cTodo").textContent=todo;
+    // per-phase
+    document.querySelectorAll(".phase").forEach(function(ph){
+      var pis=ph.querySelectorAll(".item"), t=pis.length, sc=0, allDone=true;
+      pis.forEach(function(li){ var s=li.getAttribute("data-status")||"todo";
+        if(s==="done") sc+=1; else { allDone=false; if(s==="doing") sc+=0.5; } });
+      var p=t?Math.round(sc/t*100):0;
+      ph.querySelector(".pp-pct").textContent=p+"%";
+      ph.querySelector(".pp-bar i").style.width=p+"%";
+      ph.classList.toggle("complete",allDone&&t>0);
+    });
+  }
+  recompute();
+
+  document.getElementById("resetBtn").addEventListener("click",function(){
+    if(!confirm("Скинути ТВОЇ локальні позначки та коментарі до авторського плану?")) return;
+    store={status:{},comments:{}}; save(); location.reload();
+  });
+})();
+</script>

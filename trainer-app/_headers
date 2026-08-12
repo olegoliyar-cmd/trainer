@@ -1,0 +1,29 @@
+# Security headers applied to every asset. Deliberately NO X-Frame-Options
+# (Telegram Mini App must be embeddable) and NO strict CSP yet (app is one
+# large inline script — a strict policy would break it; CSP is a careful
+# follow-up). The rest are safe and break nothing.
+# HSTS: ми HTTPS-only на Cloudflare (apex + усі сабдомени) → форсуємо HTTPS,
+# захист від SSL-strip/downgrade. Без preload (необоротно) — лише max-age+subdomains.
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Permitted-Cross-Domain-Policies: none
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  Permissions-Policy: geolocation=(), microphone=(self), camera=(self)
+  Content-Security-Policy-Report-Only: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://esm.sh https://telegram.org; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' blob: https:; connect-src 'self' https://owkxlpuuvmybdsfwebzo.supabase.co https://zlwgjdbglpymhyhfjnve.supabase.co https://world.openfoodfacts.org; frame-src https://player.mediadelivery.net https://iframe.mediadelivery.net https://open.spotify.com https://music.youtube.com https://music.apple.com https://www.instagram.com https://www.youtube.com; frame-ancestors https://telegram.org https://web.telegram.org https://*.telegram.org; object-src 'none'; base-uri 'self'; form-action 'self' https://secure.wayforpay.com
+
+# max-age=120: повторні відкриття протягом 2 хв — МИТТЄВІ (з кешу, без завантаження 746 КБ).
+# Cloudflare SPA-fallback на "/" не віддає ETag, тож no-cache не давав 304 — лишався повний
+# даунлоад щоразу. max-age усуває це. Після деплою свіжа версія підтягнеться протягом 2 хв.
+/
+  Cache-Control: max-age=120
+
+/index.html
+  Cache-Control: max-age=120
+
+# Мутабельні data-store файли (нехешовані імена) — теж коротка ревалідація, щоб
+# після редеплою не залипав старий edge-кеш (як сталось із data-store.client.js).
+/data-store.client.js
+  Cache-Control: max-age=120
+/data-store.js
+  Cache-Control: max-age=120

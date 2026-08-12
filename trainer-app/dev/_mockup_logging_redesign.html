@@ -1,0 +1,628 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Logging redesign — мокапи</title>
+<style>
+  :root {
+    --bg: #0a0b0c;
+    --surface-1: #15171a;
+    --surface-2: #1c1f23;
+    --border: #2a2e34;
+    --text: #f4f5f6;
+    --text-soft: #c2c5ca;
+    --text-muted: #7d828a;
+    --text-dim: #525861;
+    --accent: #e5ff00;
+    --success: #5be37c;
+    --font-heading: "SF Pro Display", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    --font-body: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg); color: var(--text);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    padding: 24px 16px 80px;
+    max-width: 430px;
+    margin: 0 auto;
+  }
+  h1 {
+    font-family: var(--font-heading);
+    font-size: 22px; letter-spacing: 0.4px;
+    margin: 0 0 4px;
+  }
+  .intro {
+    color: var(--text-muted); font-size: 13px; line-height: 1.5;
+    margin-bottom: 32px;
+  }
+  .variant-label {
+    font-family: var(--font-heading);
+    font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--accent);
+    margin: 32px 0 4px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .variant-label::before {
+    content: ''; display: inline-block;
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent);
+  }
+  .variant-desc {
+    font-size: 12px; color: var(--text-muted); margin: 0 0 14px;
+    line-height: 1.5;
+  }
+  .state-pair {
+    display: flex; flex-direction: column; gap: 18px;
+  }
+  .state-label {
+    font-size: 10px; letter-spacing: 1.2px; text-transform: uppercase;
+    color: var(--text-dim); margin: 0 0 8px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .state-label::after {
+    content: ''; flex: 1; height: 1px; background: var(--border);
+  }
+
+  /* ── Common sheet styles ─────────────────────────────────── */
+  .sheet {
+    background: var(--surface-1);
+    border-radius: 16px;
+    padding: 14px 14px 12px;
+    border: 1px solid var(--border);
+    display: flex; flex-direction: column; gap: 12px;
+    min-height: 440px;
+  }
+
+  /* Header (exercise + goal + round) */
+  .head {
+    background: var(--surface-2);
+    border-radius: 12px;
+    padding: 12px 12px 10px;
+    border: 1px solid var(--border);
+  }
+  .stepper {
+    display: flex; align-items: center; gap: 4px;
+    margin-bottom: 10px;
+  }
+  .stepper-dot {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--surface-1); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; color: var(--text-muted);
+  }
+  .stepper-dot.active {
+    background: var(--accent); color: #000; border-color: var(--accent);
+  }
+  .stepper-dot.done {
+    background: var(--success); color: #000; border-color: var(--success);
+  }
+  .stepper-line {
+    flex: 1; height: 2px; background: var(--border);
+  }
+  .stepper-line.done { background: var(--success); }
+
+  .head-row {
+    display: flex; justify-content: space-between; align-items: flex-end;
+    gap: 12px;
+  }
+  .ex-name {
+    font-family: var(--font-heading);
+    font-size: 17px; font-weight: 700; line-height: 1.15;
+    letter-spacing: 0.1px;
+  }
+  .round-badge {
+    font-family: var(--font-heading);
+    font-size: 12px; letter-spacing: 1px;
+    color: var(--text-soft);
+    white-space: nowrap;
+  }
+  .round-badge b { color: var(--accent); }
+
+  /* Hint hint hint */
+  .step-hint {
+    text-align: center;
+    font-size: 13px; color: var(--text-soft);
+    letter-spacing: 0.2px;
+    font-weight: 500;
+  }
+
+  /* Value block (weight + rpe) */
+  .value-block {
+    background: var(--surface-2);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    padding: 14px 14px 12px;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
+    align-items: center;
+  }
+  .vb-col { text-align: center; }
+  .vb-label {
+    font-family: var(--font-heading);
+    font-size: 11px; letter-spacing: 1.4px; text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 2px;
+  }
+  .vb-value {
+    font-family: var(--font-heading);
+    font-size: 42px; font-weight: 800; line-height: 1; letter-spacing: -1px;
+    color: var(--accent);
+  }
+  .vb-unit {
+    font-size: 11px; letter-spacing: 0.6px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  /* Sub-hint under value block (the "Підбери вагу" line) */
+  .sub-hint {
+    font-size: 12px; line-height: 1.4;
+    color: var(--accent);
+    text-align: center; margin: -4px 0 0;
+  }
+
+  /* Chip row */
+  .chips {
+    display: flex; gap: 6px; overflow-x: auto;
+    padding-bottom: 2px;
+  }
+  .chip {
+    flex: none;
+    padding: 8px 12px; border-radius: 10px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text-soft);
+    font-size: 13px; font-weight: 600;
+    min-width: 42px; text-align: center;
+  }
+  .chip.sel {
+    background: var(--accent); color: #000; border-color: var(--accent);
+  }
+
+  /* «Інша» input */
+  .custom {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 12px; border-radius: 10px;
+    background: var(--surface-2); border: 1px solid var(--border);
+    color: var(--text-dim); font-size: 13px;
+  }
+  .custom .filler { flex: 1; }
+
+  /* Back-link slot — fixed height to prevent jumps */
+  .back-slot {
+    height: 26px;
+    display: flex; align-items: center; justify-content: flex-end;
+  }
+  .back-link {
+    font-size: 11px; letter-spacing: 0.6px;
+    color: var(--text-muted);
+    background: transparent; border: 1px solid var(--border);
+    padding: 4px 10px; border-radius: 20px;
+  }
+
+  /* ─────────────────────────────────────────────────────────
+     VARIANT 1 — «GOAL AS QUIET LABEL + BIG NUMBER»
+     - «ЦІЛЬ» = small caps label
+     - Number = accent, ~20px (bigger than 14px subtitle but quieter than 42px value)
+     - Hint = small-caps coach tip with subtle separator
+     - Back-link slot always reserved (26px high)
+     ─────────────────────────────────────────────────────── */
+  .v1 .ex-name { margin-bottom: 8px; }
+  .v1 .goal-row {
+    display: flex; align-items: baseline; gap: 6px;
+    padding: 6px 0 0;
+  }
+  .v1 .goal-label {
+    font-family: var(--font-heading);
+    font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--text-dim);
+  }
+  .v1 .goal-num {
+    font-family: var(--font-heading);
+    font-size: 18px; font-weight: 800; color: var(--accent);
+    letter-spacing: -0.3px;
+  }
+  .v1 .goal-unit {
+    font-size: 12px; color: var(--text-soft);
+  }
+  .v1 .sub-hint {
+    font-size: 11px; letter-spacing: 0.6px; text-transform: uppercase;
+    color: var(--text-muted);
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .v1 .sub-hint::before, .v1 .sub-hint::after {
+    content: ''; width: 14px; height: 1px; background: var(--border);
+  }
+
+  /* ─────────────────────────────────────────────────────────
+     VARIANT 2 — «GOAL AS DECLARATIVE PILL»
+     - «ЦІЛЬ» as a horizontal accent-bordered pill in head
+     - Pill: 🎯 10 повт (icon + number + unit)
+     - Hint = soft italic, smaller
+     - Back slot reserved
+     ─────────────────────────────────────────────────────── */
+  .v2 .head-row { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .v2 .ex-name { font-size: 17px; }
+  .v2 .head-bottom {
+    display: flex; justify-content: space-between; align-items: center;
+    width: 100%; gap: 10px;
+  }
+  .v2 .goal-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 11px; border-radius: 999px;
+    border: 1px solid var(--accent);
+    background: rgba(229, 255, 0, 0.06);
+    font-family: var(--font-heading);
+    font-size: 12px; letter-spacing: 0.4px;
+    color: var(--accent);
+  }
+  .v2 .goal-pill b { font-weight: 800; font-size: 14px; }
+  .v2 .goal-pill .icon { font-size: 11px; opacity: 0.8; }
+  .v2 .sub-hint {
+    font-style: italic;
+    font-size: 12px; color: var(--text-muted);
+    font-weight: 400;
+  }
+
+  /* ─────────────────────────────────────────────────────────
+     VARIANT 3 — «COACH TIP CARD»
+     - Goal compact next to round-badge in header (single line)
+     - Hint moved to a yellow-accented "coach bubble" with subtle icon
+     - Card layout stays steady
+     ─────────────────────────────────────────────────────── */
+  .v3 .head-row { align-items: center; }
+  .v3 .head-meta {
+    display: flex; flex-direction: column; align-items: flex-end; gap: 4px;
+  }
+  .v3 .goal-inline {
+    display: flex; align-items: baseline; gap: 4px;
+    font-family: var(--font-heading);
+    font-size: 11px; color: var(--text-muted); letter-spacing: 0.8px;
+    text-transform: uppercase;
+  }
+  .v3 .goal-inline b {
+    font-size: 14px; font-weight: 800; color: var(--accent);
+    text-transform: none;
+    letter-spacing: -0.2px;
+  }
+  .v3 .coach-tip {
+    display: flex; align-items: flex-start; gap: 8px;
+    padding: 10px 12px; border-radius: 12px;
+    background: rgba(229, 255, 0, 0.04);
+    border: 1px solid rgba(229, 255, 0, 0.18);
+  }
+  .v3 .coach-tip .ico {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--accent); color: #000;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 800;
+    flex: none;
+  }
+  .v3 .coach-tip .body {
+    font-size: 12px; line-height: 1.45; color: var(--text-soft);
+  }
+  .v3 .coach-tip .body b { color: var(--text); font-weight: 700; }
+</style>
+</head>
+<body>
+
+<h1>Logging redesign — 3 варіанти</h1>
+<p class="intro">
+  Принцип розміщення збережено. Для кожного варіанта показано <b>крок ВАГА</b> і нижче <b>крок ПОВТОРЕННЯ</b> —
+  щоб видно було транзицію. Back-link слот зарезервовано всюди → висота картки <b>не стрибає</b>.
+</p>
+
+<!-- ═══════════════ VARIANT 1 ═══════════════ -->
+<div class="variant-label">Варіант 1 · Тиха ціль</div>
+<p class="variant-desc">
+  «ЦІЛЬ» — крихітний small-caps лейбл. Число — акцентне, але стримане (18px). Підказка — small-caps з рисочками для розділення зон. Скромно, спокійно.
+</p>
+<div class="state-pair">
+  <div>
+    <div class="state-label">КРОК 1 · ВАГА</div>
+    <div class="sheet v1">
+      <div class="head">
+        <div class="stepper">
+          <div class="stepper-dot active">1</div>
+          <div class="stepper-line"></div>
+          <div class="stepper-dot">2</div>
+          <div class="stepper-line"></div>
+          <div class="stepper-dot">3</div>
+        </div>
+        <div class="head-row">
+          <div>
+            <div class="ex-name">Румунська тяга</div>
+            <div class="goal-row">
+              <span class="goal-label">ціль</span>
+              <span class="goal-num">10</span>
+              <span class="goal-unit">повторень у підході</span>
+            </div>
+          </div>
+          <div class="round-badge">ПІДХІД <b>1</b> / 3</div>
+        </div>
+        <div class="back-slot"></div>
+      </div>
+      <div class="step-hint">Введи вагу</div>
+      <div class="value-block">
+        <div class="vb-col">
+          <div class="vb-label">Вага</div>
+          <div class="vb-value">10</div>
+          <div class="vb-unit">кг</div>
+        </div>
+        <div class="vb-col">
+          <div class="vb-label">RPE</div>
+          <div class="vb-value">7</div>
+          <div class="vb-unit">складність</div>
+        </div>
+      </div>
+      <div class="sub-hint">Останні ~3 повторення мають бути важкі</div>
+      <div class="chips">
+        <div class="chip sel">10</div>
+        <div class="chip">16</div>
+        <div class="chip">22</div>
+        <div class="chip">28</div>
+        <div class="chip">34</div>
+      </div>
+      <div class="custom"><span>Інша:</span><span class="filler">0.0</span><span>кг</span></div>
+    </div>
+  </div>
+
+  <div>
+    <div class="state-label">КРОК 2 · ПОВТОРЕННЯ</div>
+    <div class="sheet v1">
+      <div class="head">
+        <div class="stepper">
+          <div class="stepper-dot active">1</div>
+          <div class="stepper-line"></div>
+          <div class="stepper-dot">2</div>
+          <div class="stepper-line"></div>
+          <div class="stepper-dot">3</div>
+        </div>
+        <div class="head-row">
+          <div>
+            <div class="ex-name">Румунська тяга</div>
+            <div class="goal-row">
+              <span class="goal-label">ціль</span>
+              <span class="goal-num">10</span>
+              <span class="goal-unit">повторень у підході</span>
+            </div>
+          </div>
+          <div class="round-badge">ПІДХІД <b>1</b> / 3</div>
+        </div>
+        <div class="back-slot">
+          <button class="back-link">← Виправити вагу</button>
+        </div>
+      </div>
+      <div class="step-hint">Введи кількість повторень</div>
+      <div class="value-block">
+        <div class="vb-col">
+          <div class="vb-label">Повторення</div>
+          <div class="vb-value">10</div>
+        </div>
+        <div class="vb-col">
+          <div class="vb-label">RPE</div>
+          <div class="vb-value">7</div>
+          <div class="vb-unit">складність</div>
+        </div>
+      </div>
+      <div class="sub-hint">Останні ~3 повторення мають бути важкі</div>
+      <div class="chips">
+        <div class="chip">6</div>
+        <div class="chip">8</div>
+        <div class="chip sel">10</div>
+        <div class="chip">12</div>
+        <div class="chip">15</div>
+      </div>
+      <div class="custom"><span>Інша:</span><span class="filler">0</span><span>повт.</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ VARIANT 2 ═══════════════ -->
+<div class="variant-label">Варіант 2 · Ціль-pill</div>
+<p class="variant-desc">
+  «ЦІЛЬ» стає окремою таблеткою з contour-акцентом — її не пропустиш. Підказка курсивом, тонко. Назва вправи зверху, ПІДХІД та pill — на одному рядку нижче.
+</p>
+<div class="state-pair">
+  <div>
+    <div class="state-label">КРОК 1 · ВАГА</div>
+    <div class="sheet v2">
+      <div class="head">
+        <div class="stepper">
+          <div class="stepper-dot active">1</div>
+          <div class="stepper-line"></div>
+          <div class="stepper-dot">2</div>
+          <div class="stepper-line"></div>
+          <div class="stepper-dot">3</div>
+        </div>
+        <div class="head-row">
+          <div class="ex-name">Румунська тяга</div>
+          <div class="head-bottom">
+            <span class="goal-pill"><span class="icon">◎</span><b>10</b> повт</span>
+            <span class="round-badge">ПІДХІД <b>1</b> / 3</span>
+          </div>
+        </div>
+        <div class="back-slot"></div>
+      </div>
+      <div class="step-hint">Введи вагу</div>
+      <div class="value-block">
+        <div class="vb-col">
+          <div class="vb-label">Вага</div>
+          <div class="vb-value">10</div>
+          <div class="vb-unit">кг</div>
+        </div>
+        <div class="vb-col">
+          <div class="vb-label">RPE</div>
+          <div class="vb-value">7</div>
+          <div class="vb-unit">складність</div>
+        </div>
+      </div>
+      <div class="sub-hint">Підбери так, щоб останні ~3 повторення були важкі</div>
+      <div class="chips">
+        <div class="chip sel">10</div>
+        <div class="chip">16</div>
+        <div class="chip">22</div>
+        <div class="chip">28</div>
+        <div class="chip">34</div>
+      </div>
+      <div class="custom"><span>Інша:</span><span class="filler">0.0</span><span>кг</span></div>
+    </div>
+  </div>
+
+  <div>
+    <div class="state-label">КРОК 2 · ПОВТОРЕННЯ</div>
+    <div class="sheet v2">
+      <div class="head">
+        <div class="stepper">
+          <div class="stepper-dot active">1</div>
+          <div class="stepper-line"></div>
+          <div class="stepper-dot">2</div>
+          <div class="stepper-line"></div>
+          <div class="stepper-dot">3</div>
+        </div>
+        <div class="head-row">
+          <div class="ex-name">Румунська тяга</div>
+          <div class="head-bottom">
+            <span class="goal-pill"><span class="icon">◎</span><b>10</b> повт</span>
+            <span class="round-badge">ПІДХІД <b>1</b> / 3</span>
+          </div>
+        </div>
+        <div class="back-slot">
+          <button class="back-link">← Виправити вагу</button>
+        </div>
+      </div>
+      <div class="step-hint">Введи кількість повторень</div>
+      <div class="value-block">
+        <div class="vb-col">
+          <div class="vb-label">Повторення</div>
+          <div class="vb-value">10</div>
+        </div>
+        <div class="vb-col">
+          <div class="vb-label">RPE</div>
+          <div class="vb-value">7</div>
+          <div class="vb-unit">складність</div>
+        </div>
+      </div>
+      <div class="sub-hint">Зроби стільки, скільки прописано — або трохи більше</div>
+      <div class="chips">
+        <div class="chip">6</div>
+        <div class="chip">8</div>
+        <div class="chip sel">10</div>
+        <div class="chip">12</div>
+        <div class="chip">15</div>
+      </div>
+      <div class="custom"><span>Інша:</span><span class="filler">0</span><span>повт.</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ VARIANT 3 ═══════════════ -->
+<div class="variant-label">Варіант 3 · Coach-tip</div>
+<p class="variant-desc">
+  Ціль — компактна метадата в правому куті поряд з ПІДХІД (як inline-стат). Підказка отримує власну «coach-tip» картку з іконкою — її точно прочитаєш.
+</p>
+<div class="state-pair">
+  <div>
+    <div class="state-label">КРОК 1 · ВАГА</div>
+    <div class="sheet v3">
+      <div class="head">
+        <div class="stepper">
+          <div class="stepper-dot active">1</div>
+          <div class="stepper-line"></div>
+          <div class="stepper-dot">2</div>
+          <div class="stepper-line"></div>
+          <div class="stepper-dot">3</div>
+        </div>
+        <div class="head-row">
+          <div class="ex-name">Румунська тяга</div>
+          <div class="head-meta">
+            <div class="round-badge">ПІДХІД <b>1</b> / 3</div>
+            <div class="goal-inline">ціль <b>10</b> повт</div>
+          </div>
+        </div>
+        <div class="back-slot"></div>
+      </div>
+      <div class="step-hint">Введи вагу</div>
+      <div class="value-block">
+        <div class="vb-col">
+          <div class="vb-label">Вага</div>
+          <div class="vb-value">10</div>
+          <div class="vb-unit">кг</div>
+        </div>
+        <div class="vb-col">
+          <div class="vb-label">RPE</div>
+          <div class="vb-value">7</div>
+          <div class="vb-unit">складність</div>
+        </div>
+      </div>
+      <div class="coach-tip">
+        <div class="ico">!</div>
+        <div class="body"><b>Підбери вагу</b> так, щоб <b>останні ~3 повторення</b> були важкими.</div>
+      </div>
+      <div class="chips">
+        <div class="chip sel">10</div>
+        <div class="chip">16</div>
+        <div class="chip">22</div>
+        <div class="chip">28</div>
+        <div class="chip">34</div>
+      </div>
+      <div class="custom"><span>Інша:</span><span class="filler">0.0</span><span>кг</span></div>
+    </div>
+  </div>
+
+  <div>
+    <div class="state-label">КРОК 2 · ПОВТОРЕННЯ</div>
+    <div class="sheet v3">
+      <div class="head">
+        <div class="stepper">
+          <div class="stepper-dot active">1</div>
+          <div class="stepper-line"></div>
+          <div class="stepper-dot">2</div>
+          <div class="stepper-line"></div>
+          <div class="stepper-dot">3</div>
+        </div>
+        <div class="head-row">
+          <div class="ex-name">Румунська тяга</div>
+          <div class="head-meta">
+            <div class="round-badge">ПІДХІД <b>1</b> / 3</div>
+            <div class="goal-inline">ціль <b>10</b> повт</div>
+          </div>
+        </div>
+        <div class="back-slot">
+          <button class="back-link">← Виправити вагу</button>
+        </div>
+      </div>
+      <div class="step-hint">Введи кількість повторень</div>
+      <div class="value-block">
+        <div class="vb-col">
+          <div class="vb-label">Повторення</div>
+          <div class="vb-value">10</div>
+        </div>
+        <div class="vb-col">
+          <div class="vb-label">RPE</div>
+          <div class="vb-value">7</div>
+          <div class="vb-unit">складність</div>
+        </div>
+      </div>
+      <div class="coach-tip">
+        <div class="ico">i</div>
+        <div class="body"><b>Цілься</b> в прописану кількість. Якщо легко — у наступному підході збільш вагу.</div>
+      </div>
+      <div class="chips">
+        <div class="chip">6</div>
+        <div class="chip">8</div>
+        <div class="chip sel">10</div>
+        <div class="chip">12</div>
+        <div class="chip">15</div>
+      </div>
+      <div class="custom"><span>Інша:</span><span class="filler">0</span><span>повт.</span></div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

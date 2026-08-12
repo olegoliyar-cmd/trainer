@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>FITCOACH — iPhone 16 Pro preview</title>
+<style>
+  :root{
+    /* iPhone 16 Pro logical viewport: 393 × 852 pt */
+    --screen-w: 393px;
+    --screen-h: 852px;
+    --bezel: 12px;
+    --frame-r: 62px;
+    --screen-r: 50px;
+    --safe-top: 50px;     /* статус-бар / Dynamic Island clearance */
+    --safe-bottom: 18px;  /* home-indicator clearance */
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;}
+  html{ background:#000; }
+  body{
+    display:flex;align-items:center;justify-content:center;
+    min-height:100%;padding:0;overflow:hidden;
+    /* Преміальний чорний фон-прев'ю: глибокий чорний + ледь помітне брендове
+       сяйво по центру + холодний відблиск знизу. Без білого, кінематографічно. */
+    background:
+      radial-gradient(72vw 52vh at 50% 36%, rgba(232,255,0,.07), transparent 60%),
+      radial-gradient(90vw 70vh at 50% 116%, rgba(120,126,140,.05), transparent 60%),
+      #000;
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;
+  }
+  /* Віньєтка по краях — фокус на телефоні */
+  body::before{
+    content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+    background:radial-gradient(118% 96% at 50% 47%, transparent 50%, rgba(0,0,0,.74) 100%);
+  }
+
+  /* Авто-масштаб: вписуємо девайс у вікно (не більше 1:1) */
+  .stage{ transform-origin:center center; position:relative; z-index:1; }
+  /* М'яке брендове сяйво-ореол за телефоном — преміальний «парящий» вигляд */
+  .device::before{
+    content:"";position:absolute;inset:-9% -14%;z-index:-1;pointer-events:none;
+    background:radial-gradient(54% 46% at 50% 46%, rgba(232,255,0,.13), transparent 72%);
+    filter:blur(48px);
+  }
+  /* М'яка тінь під телефоном для глибини */
+  .device::after{
+    content:"";position:absolute;left:50%;bottom:-26px;transform:translateX(-50%);
+    width:62%;height:34px;z-index:-1;pointer-events:none;
+    background:radial-gradient(50% 50% at 50% 50%, rgba(0,0,0,.7), transparent 75%);
+    filter:blur(10px);
+  }
+
+  /* DEV/QA-панель прихована за замовчуванням (щоб не лізла у відео-прев'ю).
+     Показати для тесту: відкрий _device_16pro.html?qa=1 */
+  .qa-bar{
+    position:fixed; left:50%; bottom:14px; transform:translateX(-50%);
+    z-index:9999; display:none; flex-direction:column; align-items:center; gap:5px;
+    pointer-events:none;
+  }
+  body.qa-on .qa-bar{ display:flex; }
+  #qa-custom-tour{
+    pointer-events:auto;
+    font:600 13px/1 -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;
+    color:#0a0a0c; background:linear-gradient(180deg,#f3ff14,#cbdc01);
+    border:0; border-radius:13px; padding:11px 18px; cursor:pointer;
+    box-shadow:0 6px 20px rgba(225,255,1,.30), 0 1px 0 rgba(255,255,255,.4) inset;
+    transition:transform .1s ease, box-shadow .14s ease;
+  }
+  #qa-custom-tour:hover{ box-shadow:0 8px 26px rgba(225,255,1,.42); }
+  #qa-custom-tour:active{ transform:scale(.96); }
+  .qa-hint{
+    pointer-events:none;
+    font:500 10.5px/1 -apple-system,system-ui,sans-serif;
+    color:rgba(255,255,255,.42); letter-spacing:.2px;
+  }
+
+  .device{
+    position:relative;
+    width:calc(var(--screen-w) + var(--bezel)*2);
+    height:calc(var(--screen-h) + var(--bezel)*2);
+    border-radius:var(--frame-r);
+    padding:var(--bezel);
+    background:
+      linear-gradient(150deg, #5a5d63 0%, #2a2b2e 18%, #3c3e42 40%,
+        #232427 62%, #4c4e52 82%, #1d1e20 100%);
+    box-shadow:
+      0 0 0 2px #050506,
+      0 2px 3px rgba(255,255,255,.10) inset,
+      0 -2px 3px rgba(0,0,0,.55) inset,
+      0 38px 80px -12px rgba(0,0,0,.85),
+      0 12px 28px -8px rgba(0,0,0,.7);
+  }
+  .device::before{
+    content:"";position:absolute;inset:3px;border-radius:calc(var(--frame-r) - 3px);
+    background:linear-gradient(150deg,
+      rgba(255,255,255,.22) 0%, rgba(255,255,255,0) 22%,
+      rgba(255,255,255,0) 78%, rgba(255,255,255,.16) 100%);
+    pointer-events:none;
+  }
+
+  .screen{
+    position:relative;
+    width:var(--screen-w);height:var(--screen-h);
+    border-radius:var(--screen-r);
+    background:#000;
+    overflow:hidden;
+    box-shadow:0 0 0 3px #000, 0 0 16px rgba(0,0,0,.6) inset;
+  }
+  /* iframe вставлено НИЖЧЕ острівця (емуляція safe-area-inset-top, бо env()=0 у браузері) */
+  iframe{
+    position:absolute;
+    top:var(--safe-top); left:0;
+    width:100%; height:calc(100% - var(--safe-top));
+    border:0;display:block;background:#0b0b0c;
+  }
+
+  /* Dynamic Island */
+  .island{
+    position:absolute;top:12px;left:50%;transform:translateX(-50%);
+    width:118px;height:35px;
+    background:#000;border-radius:18px;
+    z-index:20;pointer-events:none;
+    box-shadow:0 0 0 1px rgba(255,255,255,.05);
+  }
+  .island::after{
+    content:"";position:absolute;top:50%;right:12px;transform:translateY(-50%);
+    width:8px;height:8px;border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, #2f3a44 0%, #060708 70%);
+    box-shadow:0 0 0 1px rgba(255,255,255,.06);
+  }
+  /* Час + індикатори у статус-барі (статичні, для реалізму) */
+  .statusbar{
+    position:absolute;top:0;left:0;width:100%;height:var(--safe-top);
+    z-index:15;pointer-events:none;
+    display:flex;align-items:center;justify-content:space-between;
+    padding:0 30px;
+    color:#fff;font-size:15px;font-weight:600;letter-spacing:.3px;
+  }
+  .statusbar .sb-right{ display:flex;align-items:center;gap:6px; }
+  .statusbar svg{ display:block; }
+
+  /* Home indicator */
+  .home-ind{
+    position:absolute;bottom:8px;left:50%;transform:translateX(-50%);
+    width:134px;height:5px;border-radius:3px;
+    background:rgba(255,255,255,.32);
+    z-index:20;pointer-events:none;
+  }
+
+  .btn{
+    position:absolute;
+    background:linear-gradient(180deg,#5b5d62,#2a2b2e);
+    box-shadow:0 1px 1px rgba(0,0,0,.5);
+  }
+  .btn.l{left:-3px;border-radius:3px 0 0 3px;width:4px;}
+  .btn.r{right:-3px;border-radius:0 3px 3px 0;width:4px;}
+  .btn.action{top:130px;height:28px;}
+  .btn.vol-up{top:190px;height:54px;}
+  .btn.vol-down{top:260px;height:54px;}
+  .btn.power{top:210px;height:90px;}
+  .btn.camera{top:336px;height:38px;width:4px;}
+</style>
+</head>
+<body>
+  <div class="stage" id="stage">
+    <div class="device">
+      <div class="btn l action"></div>
+      <div class="btn l vol-up"></div>
+      <div class="btn l vol-down"></div>
+      <div class="btn r power"></div>
+      <div class="btn r camera"></div>
+      <div class="screen">
+        <div class="island"></div>
+        <div class="statusbar">
+          <span class="sb-time">9:41</span>
+          <span class="sb-right">
+            <!-- signal -->
+            <svg width="17" height="11" viewBox="0 0 17 11" fill="#fff"><rect x="0" y="7" width="3" height="4" rx="1"/><rect x="4.5" y="5" width="3" height="6" rx="1"/><rect x="9" y="2.5" width="3" height="8.5" rx="1"/><rect x="13.5" y="0" width="3" height="11" rx="1"/></svg>
+            <!-- wifi -->
+            <svg width="16" height="11" viewBox="0 0 16 12" fill="#fff"><path d="M8 2.2c2.3 0 4.4.9 6 2.4l-1.3 1.3A6.6 6.6 0 0 0 8 4.1 6.6 6.6 0 0 0 3.3 5.9L2 4.6A8.5 8.5 0 0 1 8 2.2Zm0 3.3c1.4 0 2.7.5 3.6 1.5l-1.3 1.3A2.9 2.9 0 0 0 8 7.4c-.9 0-1.7.3-2.3.9L4.4 7A5 5 0 0 1 8 5.5Zm0 3.3c.6 0 1.1.2 1.5.6L8 10.3 6.5 9.4c.4-.4.9-.6 1.5-.6Z"/></svg>
+            <!-- battery -->
+            <svg width="26" height="12" viewBox="0 0 26 12" fill="none"><rect x="1" y="1" width="21" height="10" rx="3" stroke="#fff" stroke-opacity=".4"/><rect x="3" y="3" width="15" height="6" rx="1.5" fill="#fff"/><rect x="23.5" y="4" width="1.5" height="4" rx=".75" fill="#fff" fill-opacity=".5"/></svg>
+          </span>
+        </div>
+        <iframe
+          src="../index.html"
+          title="FITCOACH"
+          allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media"></iframe>
+        <script>
+          /* Прокидаємо query (напр. ?client=cl_demo) з рамки в iframe додатка,
+             щоб deep-link тренера працював і в обрамленому прев'ю. */
+          (function(){ if(location.search){ var f=document.querySelector('iframe'); f.src='index.html'+location.search; } })();
+        </script>
+        <div class="home-ind"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DEV/QA — поза рамкою прев'ю. Скидає стан до «нового користувача» і
+       запускає окремий тур по складанню власної програми. -->
+  <div class="qa-bar">
+    <button id="qa-custom-tour" type="button">▶︎ Туторіал «власна програма» (як новий юзер)</button>
+    <span class="qa-hint">скидає налаштування користувача в прев'ю</span>
+  </div>
+
+<script>
+  // QA-панель показуємо лише з ?qa=1 (або #qa) — щоб чисте відео-прев'ю було без неї.
+  if(/(?:[?&]qa=1|#qa)/.test(location.search + location.hash)) document.body.classList.add('qa-on');
+
+  // Вписуємо девайс у вікно превʼю (з відступом), не розтягуючи понад 1:1.
+  (function(){
+    var stage = document.getElementById('stage');
+    var DEV_W = 393 + 24, DEV_H = 852 + 24;  // screen + bezel*2
+    function fit(){
+      var pad = 24;
+      var s = Math.min(1, (window.innerWidth - pad) / DEV_W, (window.innerHeight - pad) / DEV_H);
+      stage.style.transform = 'scale(' + s + ')';
+    }
+    fit();
+    window.addEventListener('resize', fit);
+  })();
+
+  // DEV-кнопка: симулюємо «нового користувача» (чистимо весь налаштований
+  // стан у localStorage прев'ю), тоді запускаємо гайд по власній програмі.
+  (function(){
+    var btn = document.getElementById('qa-custom-tour');
+    if(!btn) return;
+    var RESET_KEYS = [
+      'gf_custom_program_v1','gf_custom_program_set','gf_custom_tour_seen',
+      'gf_schedule_days','gf_schedule_set','gf_schedule_mode',
+      'gf_week_plan','gf_completed','gf_extra_planned','gf_extra_sessions',
+      'gf_tour_v1_seen'
+    ];
+    btn.addEventListener('click', function(){
+      var ifr = document.querySelector('iframe');
+      var w = ifr && ifr.contentWindow;
+      if(!w){ alert('Прев’ю ще вантажиться'); return; }
+      try {
+        if(typeof w.closeCustomTour === 'function') w.closeCustomTour();
+        if(typeof w.closeTour === 'function') try{ w.closeTour(); }catch(e){}
+        if(typeof w.closeDaySheet === 'function') try{ w.closeDaySheet(); }catch(e){}
+        RESET_KEYS.forEach(function(k){ try{ w.localStorage.removeItem(k); }catch(e){} });
+        // Робимо «нового користувача власної програми»: ключ програми = custom,
+        // графік не налаштований → Hub показує запрошення обрати дні (крок 1 туру).
+        try{ w.localStorage.setItem('gf_program_key', 'custom'); }catch(e){}
+        try{ if(typeof w.renderWeekStrip === 'function') w.renderWeekStrip(); }catch(e){}
+        if(typeof w.startCustomTour === 'function'){
+          setTimeout(function(){ w.startCustomTour(); }, 160);
+        } else {
+          alert('startCustomTour недоступна — онови прев’ю');
+        }
+      } catch(e){ alert('Помилка: ' + e.message); }
+    });
+  })();
+</script>
+</body>
+</html>

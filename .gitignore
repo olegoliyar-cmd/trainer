@@ -1,0 +1,12 @@
+.dev-secrets.env
+.sbp
+scratchpad/
+.DS_Store
+.wrangler/
+supabase/.temp/
+.env*
+!.env.example
+node_modules/
+dist/
+*.log
+SECRETS-LOCAL.md
