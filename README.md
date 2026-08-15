@@ -1,74 +1,206 @@
 # TRAINER — SaaS-платформа для персональних тренерів
 
-B2B-платформа: у тренера — адмінка (CRM, клієнти, програми, календар), у його клієнтів — Telegram Mini App (тренування, харчування, звіти, прогрес). Мультитенантність: кожен тренер = свій бот + свої клієнти. Виросло з клубного застосунку GrekFit (архів — в `archive/`).
+B2B-платформа. У тренера — **адмінка** (CRM, клієнти, програми, календар,
+оплати), у його клієнтів — **Telegram Mini App** (тренування, харчування,
+звіти, прогрес). Мультитенантність: кожен тренер = свій Telegram-бот і свої
+клієнти. Виросло з клубного застосунку GrekFit — той знімок лежить в
+[`archive/`](archive/README.md) і до цього проєкту вже не належить.
 
-## Структура
+---
+
+## Три шари проєкту
+
+Структура зроблена так, щоб з першого погляду було видно, що є що.
 
 ```
 TRAINER/
-├── dev-server.mjs        ← вхідна точка розробки: node dev-server.mjs (порт 3210)
-│                            /            → прев'ю-перемикач (клієнт·тел / тренер·тел / тренер·веб)
-│                            /trainer/    → адмінка
-│                            /api/*       → mock-бекенд (backend/api.mjs)
-├── data-store.js         ← mock DataStore (localStorage + /api). У проді підміняється
-│                            на supabase/data-store.supabase.js (адмінка) чи .client.js (клієнт)
 │
-├── trainer-admin/        ← АДМІНКА ТРЕНЕРА (один файл!)
-│   ├── index.html        ← весь застосунок: HTML+CSS+JS інлайн (~580 КБ)
-│   ├── super.html        ← супер-адмінка (онбординг тренерів, контроль-база)
-│   └── preview.html      ← дев-шелл: Веб / Мобайл / Обидва (клавіші W/M/B)
+├── apps/                      🟢 ПОВЕРХНІ ПРОДАКШЕНУ — те, що бачать люди
+│   ├── client/                   Mini App клієнта (Telegram)
+│   │   ├── index.html               весь застосунок в одному файлі (~2.2 МБ)
+│   │   ├── preview.html             прев'ю-перемикач (сервиться на / дев-сервера)
+│   │   ├── assets/                  картинки + gf-sync.js (міст TrainerSync)
+│   │   ├── docs/                    публічні сторінки: privacy · terms · medical · refund
+│   │   ├── dev/                     рамки iPhone для розробки (НЕ деплояться)
+│   │   └── _headers                 заголовки Cloudflare Pages
+│   │
+│   └── trainer/               Кабінет тренера — і мобільний, і десктопний
+│       ├── index.html               весь застосунок в одному файлі (~600 КБ),
+│       │                            адаптивний: <900px = застосунок, ≥900px = веб
+│       ├── super.html               супер-адмінка (онбординг тренерів)
+│       └── preview.html             дев-шелл: Веб / Мобайл / Обидва (клавіші W/M/B)
 │
-├── trainer-app/          ← КЛІЄНТСЬКИЙ APP (Telegram Mini App, теж один файл)
-│   ├── index.html        ← весь застосунок
-│   ├── preview.html      ← прев'ю-перемикач (сервиться на / дев-сервера)
-│   ├── assets/           ← картинки, gf-sync.js (TrainerSync міст)
-│   ├── docs/             ← публічні сторінки: privacy / terms / medical / refund
-│   ├── dev/              ← дев-шели iPhone-рамок і мокапи (НЕ деплояться)
-│   └── _headers          ← заголовки Cloudflare Pages
+├── supabase/                  🟡 ПРОД-БЕКЕНД
+│   ├── *.sql                     схема й міграції (16 файлів)
+│   ├── functions/                12 Edge Functions (див. нижче)
+│   ├── data-store.supabase.js    шар даних адмінки
+│   └── data-store.client.js      шар даних клієнтського апу
 │
-├── backend/              ← MOCK-БЕКЕНД для локальної розробки
-│   ├── api.mjs           ← роути /api/*
-│   ├── store.mjs         ← логіка + сід демо-даних
-│   ├── data.json         ← локальна "база" (Вася/Оксана/…)
-│   └── exercises.json    ← база вправ (сервиться і в прод-бандл адмінки)
+├── backend/                   🟡 MOCK-БЕКЕНД для локальної розробки
+│   ├── api.mjs                   роути /api/*
+│   ├── store.mjs                 логіка + демо-дані
+│   ├── data.json                 локальна «база»
+│   └── exercises.json            база вправ (їде і в прод-бандл адмінки)
 │
-├── supabase/             ← ПРОД-БЕКЕНД (Supabase)
-│   ├── schema.sql + *.sql← схема й міграції (meetings, daily_reports, chat…)
-│   ├── data-store.supabase.js ← DataStore адмінки (той самий інтерфейс, що mock)
-│   ├── data-store.client.js   ← DataStore клієнтського апу
-│   └── functions/        ← Edge Functions: telegram-webhook, admin-api, client-api,
-│                            meeting-create, formcheck-review, bunny-upload, крони…
+├── scripts/                   🟡 ЛІНІЙКА
+│   └── health_check.mjs          перевірка «чи нічого не зламалось»
 │
-├── docs/                 ← документація і плани
-│   ├── HANDOFF-TRAINER-SAAS.md  ← ⭐ передача між сесіями (читати першим)
-│   ├── DESIGN.md                ← дизайн-система (Linear): поверхні, радіуси, відступи
-│   └── PLAN-*.md/html           ← плани: MVP-борд, go-live, рев'ю
+├── docs/                      🟡 ДОКУМЕНТАЦІЯ
+│   ├── HANDOFF-TRAINER-SAAS.md   ⭐ передача між сесіями — читати першим
+│   ├── DESIGN.md                 дизайн-система: поверхні, радіуси, відступи
+│   └── PLAN-*.md/html            плани: MVP-борд, go-live, рев'ю
 │
-├── archive/              ← старий проєкт GrekFit (снапшот) + legacy-скрипти
-└── .dev-secrets.env      ← токени CF/Supabase/Bunny/боти (gitignored, НЕ комітити)
+├── dev-server.mjs             вхідна точка розробки
+├── data-store.js              mock DataStore (у проді підміняється на supabase/*)
+│
+└── archive/                   🔴 НЕ ЦЕЙ ПРОЄКТ + мертве — див. archive/README.md
 ```
+
+> **Чому `client` і `trainer`, а не `trainer-app` і `trainer-admin`.**
+> Старі назви брехали: `trainer-app` — це був **клієнтський** застосунок.
+> На цьому легко втратити пів години. Перейменовано 15.08.2026.
+
+---
 
 ## Запуск локально
 
 ```bash
 node dev-server.mjs
-# → http://localhost:3210/          прев'ю обох апів
-# → http://localhost:3210/trainer/  адмінка напряму
 ```
 
-Порт може бути зайнятий (autoPort) — дивись реальний порт у виводі.
+| Адреса | Що відкриється |
+|---|---|
+| `http://localhost:3210/` | прев'ю-перемикач: клієнт·тел / тренер·тел / тренер·веб |
+| `http://localhost:3210/trainer/` | адмінка тренера напряму |
+| `http://localhost:3210/index.html` | клієнтський апп напряму |
+| `http://localhost:3210/api/trainers` | mock-API |
 
-## Деплой (Cloudflare Pages, секрети з .dev-secrets.env)
+⚠️ Порт може бути зайнятий (`autoPort`) — **бери реальний порт із виводу**,
+а не з пам'яті. На цьому вже двічі губився час.
 
-- **Адмінка** `traineros-admin`: бандл = `trainer-admin/index.html` + `trainer-admin/super.html` + `supabase/data-store.supabase.js` + `backend/exercises.json`
-- **Клієнт** `traineros-app`: бандл = `trainer-app/*` (без `dev/`) + `supabase/data-store.client.js` + `data-store.js`; кеш-бастер `?b=mtbNN`
-- Команда: `npx wrangler@3 pages deploy <dir> --project-name=<proj> --branch=main --commit-dirty=true`
-- Перед деплоєм: витягти інлайн-скрипти → `node --check`
-- DDL у прод: Supabase Management API `POST /v1/projects/{ref}/database/query` (+браузерний User-Agent)
+---
 
-## Ключове
+## Перевірка, що нічого не зламалось
 
-- Обидва апи — **однофайлові** (index.html з інлайн CSS/JS, без білдера і залежностей).
-- Режим визначається в рантаймі: localhost → mock `data-store.js`, прод → Supabase-стори (однаковий інтерфейс `DataStore.*`).
-- Прод-тенант: тренер Роман (GREKFIT), `879190a8-3b72-4b01-98cc-10b92b68058b`. У проді є демо-клієнти — прибрати перед запуском.
-- Час зустрічей у UI — завжди локальний (`mtLocalHHMM`); все, що липне до верху в TG — `--tg-safe-top`, не `env(safe-area-inset-top)`.
+```bash
+node scripts/health_check.mjs
+```
+
+67 перевірок за ~15 секунд, тільки читання. Зелено = можна працювати далі.
+
+Що стереже:
+
+| Група | Що ловить |
+|---|---|
+| **Відбитки** | файл зник · файл змінився · файл переїхав (побайтово) |
+| **Секрети** | ключі в трекованих файлах · чи `.dev-secrets.env` під забороною |
+| **Запускові шляхи** | усе, на що вказує `.claude/launch.json`, існує |
+| **Асети** | кожне посилання в HTML веде на реальний файл |
+| **Синтаксис JS** | усі `.mjs`/`.js` і всі інлайн-скрипти парсяться |
+| **Живий прогін** | піднімає dev-сервер і смикає 7 адрес — сторінка мусить містити правильний вміст, а не просто відповісти 200 |
+
+Після **навмисної** зміни файлів лінійка почервоніє на «вміст не змінено» —
+це нормально. Перезняти відбиток:
+
+```bash
+node scripts/health_check.mjs --save-baseline
+```
+
+Мітка відкату перед великим перебиранням тек: `before-cleanup-2026-08-15`.
+
+---
+
+## Зовнішні сервіси
+
+| Сервіс | Для чого | Де ключі |
+|---|---|---|
+| **Cloudflare Pages** | хостинг обох апів | `.dev-secrets.env` |
+| **Supabase** | база, авторизація, Edge Functions, Storage | `.dev-secrets.env` |
+| **Telegram Bot API** | бот тренера + бот клієнта на кожного тренера | токен клієнтського бота — у таблиці `trainer_secrets` (читає лише `service_role`) |
+| **Bunny Stream** | відео вправ | `.dev-secrets.env` |
+| **OpenAI (Whisper)** | розшифровка голосових чек-інів | `.dev-secrets.env` |
+| **Anthropic (Claude Haiku)** | саммарі чек-інів, AI-ввід їжі | `.dev-secrets.env` |
+| **WayForPay** | оплати (успадковано з GrekFit) | — |
+
+### Edge Functions (`supabase/functions/`)
+
+`telegram-auth` · `telegram-webhook` · `client-api` · `admin-api` ·
+`meeting-create` · `formcheck-review` · `formcheck-cleanup` ·
+`daily-automations` (крони) · `resolve-food` (AI-їжа) · `bunny-upload` ·
+`trainer-feedback` · `health-ingest`
+
+---
+
+## Що куди деплоїться
+
+| Що | Куди | Бандл |
+|---|---|---|
+| Адмінка | `traineros-admin.pages.dev` | `apps/trainer/index.html` + `apps/trainer/super.html` + `supabase/data-store.supabase.js` + `backend/exercises.json` |
+| Клієнт | `traineros-app.pages.dev` | `apps/client/*` (без `dev/`) + `supabase/data-store.client.js` + `data-store.js` |
+
+```bash
+npx wrangler@3 pages deploy <тека> --project-name=<проєкт> --branch=main --commit-dirty=true
+```
+
+- Перед деплоєм: `node scripts/health_check.mjs` має бути зелений.
+- Клієнту **обов'язково бампати кеш-бастер** `?b=mtbNN` — інакше телефони
+  лишаться на старій версії.
+- DDL у прод: Supabase Management API
+  `POST /v1/projects/{ref}/database/query` + **браузерний User-Agent**
+  (без нього Cloudflare віддає 1010).
+- Після деплою: `curl` маркери + `/super` має лишатись 200.
+
+---
+
+## Відомі граблі
+
+Це не теорія — кожен пункт коштував часу.
+
+**Розгортання і деплой**
+- Порт дев-сервера стрибає — брати живий порт із виводу, не з пам'яті.
+- `.git` важить ~126 МБ через відео в `archive/`. GitHub прийме, але
+  попередить про великі файли.
+- 🔴 **Прод клієнтського апу зараз СТАРІШИЙ за диск.** На диску є фікс проти
+  зуму (17 рядків), у проді його немає, кеш-бастер не бампнутий (`mtb25`
+  в обох). Свідоме рішення від 15.08.2026 — не чіпати прод, поки не наведемо
+  лад. Адмінка ж збігається з диском побайтово.
+
+**Верстка**
+- Усе, що липне до верху в Telegram — тільки `--tg-safe-top`,
+  **не** `env(safe-area-inset-top)`. Той не знає про кнопки Telegram.
+- Час зустрічей у UI — завжди локальний (`mtLocalHHMM`), не `slice(11,16)`
+  від ISO-рядка.
+- Градієнти SVG-кілець мають жити в глобальному скоупі. Всередині схованого
+  `display:none` в'ю штрих перестає резолвитись — і кільця зникають.
+- `showView` асинхронний (rAF + 30 мс). При скриптовій навігації — чекати.
+- Дублікати ключів в об'єктах JS тихо перебивають один одного (був баг
+  у `VIEW_TITLES`).
+- `display:flex` перебиває атрибут `hidden` → потрібне правило
+  `[hidden]{display:none}`.
+- `#client-tab-body` перестворюється кожним `selectClient` — слухачі вішати
+  на статичний `#client-detail-body`.
+
+**Дані й бекенд**
+- Крони припускають UTC+3. При переході на зимовий час зсунуться на годину.
+- У проді є демо-клієнти (Андрій / Соломія / Тарас / Марта у тренера Романа,
+  `879190a8-3b72-4b01-98cc-10b92b68058b`) — **прибрати перед реальним
+  запуском**.
+- AI-ключі колись світились у переписці — ротувати перед продакшеном.
+
+**Секрети**
+- `.dev-secrets.env` (13 ключів) і `SECRETS-LOCAL.md` — у `.gitignore`,
+  у git не потрапляють. Перевірено по всій історії комітів.
+- `SECRETS-LOCAL.md` — це журнал уже витягнутих секретів. У ньому записаний
+  Telegram-токен у відкритому вигляді; чи він живий — не перевірялось.
+
+---
+
+## Ключове про архітектуру
+
+- Обидва апи — **однофайлові**: `index.html` з інлайн CSS і JS. Без збірки,
+  без залежностей, без `node_modules`. Відкрив файл — бачиш увесь застосунок.
+- Режим визначається в рантаймі: localhost → mock `data-store.js`,
+  прод → Supabase-стори. Інтерфейс `DataStore.*` в обох однаковий, тому
+  застосунок не знає, з чим працює.
+- Кабінет тренера — **одна кодова база на два пристрої**: <900px малює
+  мобільний застосунок із нижнім таб-баром, ≥900px — веб із лівим сайдбаром.

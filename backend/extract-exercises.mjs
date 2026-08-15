@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 const __dir = dirname(fileURLToPath(import.meta.url));
-const html = readFileSync(join(__dir, '..', 'trainer-app', 'index.html'), 'utf8');
+const html = readFileSync(join(__dir, '..', 'apps', 'client', 'index.html'), 'utf8');
 
 const marker = 'const EXERCISE_DB = {';
 const start = html.indexOf(marker);

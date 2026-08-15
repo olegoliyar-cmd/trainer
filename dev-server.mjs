@@ -2,9 +2,9 @@
 //  DEV-СЕРВЕР (один origin, без CORS-мороки):
 //    /api/*      → mock-бекенд (backend/api.mjs)
 //    /data-store.js → спільний DataStore-клієнт (для обох апів)
-//    /trainer/*  → тренерська адмінка (trainer-admin/)
-//    /           → клієнтський апп у рамці iPhone 16 Pro (trainer-app/_device_16pro.html)
-//    решта       → клієнтський апп (trainer-app/)
+//    /trainer/*  → тренерська адмінка (apps/trainer/)
+//    /           → прев'ю-перемикач (apps/client/preview.html)
+//    решта       → клієнтський апп (apps/client/)
 // ─────────────────────────────────────────────────────────────────────────
 import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
@@ -13,8 +13,8 @@ import { fileURLToPath } from 'node:url';
 import handleApi from './backend/api.mjs';
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
-const CLIENT_DIR = join(ROOT, 'trainer-app');
-const TRAINER_DIR = join(ROOT, 'trainer-admin');
+const CLIENT_DIR = join(ROOT, 'apps', 'client');
+const TRAINER_DIR = join(ROOT, 'apps', 'trainer');
 const PORT = Number(process.env.PORT) || 3210;
 
 const MIME = {
@@ -60,7 +60,7 @@ const server = createServer(async (req, res) => {
     }
 
     // 4) корінь → перемикач прев'ю (3 версії: клієнт·тел / тренер·тел / тренер·веб);
-    //    решта шляхів — клієнтський апп із теки trainer-app/.
+    //    решта шляхів — клієнтський апп із теки apps/client/.
     return serveFile(res, CLIENT_DIR, path, '/preview.html');
   } catch {
     res.writeHead(500, { 'Content-Type': 'text/plain' }).end('Server error');
