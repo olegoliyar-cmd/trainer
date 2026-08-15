@@ -1,5 +1,5 @@
 {
-  "takenAt": "2026-08-15T10:36:53.552Z",
+  "takenAt": "2026-08-15T11:07:24.431Z",
   "files": {
     ".claude/launch.json": {
       "sha": "a5a8fa66c7dd80fa2c127355e8fadb4013a026f1e97133676b7153758861ac3b",
@@ -854,8 +854,8 @@
       "bytes": 385422
     },
     "archive/GREKFIT-COMPLETE-SNAPSHOT-2026-07-01/HANDOFF.md": {
-      "sha": "8aa805d47e4660ca56a33b75f046bdaff688983df53b859e1428eb921e56d1a7",
-      "bytes": 274263
+      "sha": "53d02d2434a68fbd7d332b07637624c5ec2d2b9bae8d826eb05fd9503bb1d19a",
+      "bytes": 274377
     },
     "archive/GREKFIT-COMPLETE-SNAPSHOT-2026-07-01/Training body icons/photo_2026-06-15 11.53.01.jpeg": {
       "sha": "c78add0e609b483c4495c12568a7ec58f828e115a663a8f180203932a9734e7c",
@@ -942,8 +942,8 @@
       "bytes": 3506
     },
     "archive/GREKFIT-COMPLETE-SNAPSHOT-2026-07-01/_AI-MEMORY-CONTEXT/project_grekfit_backend_20260525.md": {
-      "sha": "32b189dd74825ef5e544a01be0de5f430023d2e21b4bd90be7d2a51cc4d96f2d",
-      "bytes": 7029
+      "sha": "d750bb85b1d135f64cbe1274f0c400449b54c6683601fa5087a1b3e888b98194",
+      "bytes": 7063
     },
     "archive/GREKFIT-COMPLETE-SNAPSHOT-2026-07-01/_AI-MEMORY-CONTEXT/project_grekfit_bot_notifications_build_20260615.md": {
       "sha": "ef782b193cccc5e0ab6ed150071107a76670de1e3fa6783ed71a697317f2f3c2",
@@ -7225,6 +7225,10 @@
       "sha": "45da0dfa3f3d1ec7244963885e7836ba028f52587cf14b44ee4af106c17b8aff",
       "bytes": 1587
     },
+    "archive/README.md": {
+      "sha": "ae967e888ba57f67dff197db1951d0ac8d54be609b325ca0cc689a9811785e33",
+      "bytes": 6745
+    },
     "archive/dev-mockups/_device_16pro_demo.html": {
       "sha": "1938e333eacdaa38b0feaafc8aff2634ce7c21f8f9eb79a8268fb832476279d7",
       "bytes": 3848
@@ -7302,12 +7306,12 @@
       "bytes": 24354
     },
     "docs/HANDOFF-TRAINER-SAAS.md": {
-      "sha": "e28a04f3618d56d46305f0498441be2a8ef3bdbc34a0f41ca04ff1afa7262f6b",
-      "bytes": 201577
+      "sha": "72db0239c41e9168ece1cf61b4e5ac621e760db98744420f36ea562919d8aaa0",
+      "bytes": 201731
     },
     "docs/PLAN-GO-LIVE.md": {
-      "sha": "6ff5b86b4bb0f20cce8126434f1512584d9272f541867243df76cee34247a99e",
-      "bytes": 12899
+      "sha": "3f8eed6f7e759b66699149dd9d8c26f3a8b51b0e089a5f97180efc21e1d7d69e",
+      "bytes": 12989
     },
     "docs/PLAN-MVP-BOARD.html": {
       "sha": "67fbe1efed3c5ff5dd84ba281067739cff26baa4ec613d191354b07f34aad79d",
@@ -7318,16 +7322,20 @@
       "bytes": 15045
     },
     "docs/PLAN-REVIEW-SESSION.md": {
-      "sha": "1b14ceb22ef1fc63e9f255ebd9f687351ec3bf453425aef5671b409274f39c17",
-      "bytes": 7151
+      "sha": "2e78ce8214406fc55f7aa62d91cac778e20c869fa5aa905f96ad372c34c77c23",
+      "bytes": 7183
     },
     "docs/grekfit-nutrition-calc-SKILL.docx": {
       "sha": "913416d0b1613c441d57a7dd6b324f28c5bd16c3e7b1ddeee0d8bf58b2d972bd",
       "bytes": 11897
     },
+    "scripts/health-baseline.json": {
+      "sha": "cdfec521a8d135104bc74ad6b3e992327cf56339f493376dc473adfa82af57a2",
+      "bytes": 401080
+    },
     "scripts/health_check.mjs": {
-      "sha": "f9bd02c208fd960206c82f152d572912eb440475169a68aa803d421bd666b92f",
-      "bytes": 18432
+      "sha": "3b3c0a82a7ab8992507e78d520402b409a1bc4672a23f5e51735dd411ce6427f",
+      "bytes": 22311
     },
     "supabase/README.md": {
       "sha": "8e89a5b41712379fe173b6980fb2983399781e930514de22e640a30a4491f2ab",
