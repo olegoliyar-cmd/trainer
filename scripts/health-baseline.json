@@ -1,5 +1,5 @@
 {
-  "takenAt": "2026-08-15T11:07:35.564Z",
+  "takenAt": "2026-08-15T11:07:57.176Z",
   "files": {
     ".claude/launch.json": {
       "sha": "a5a8fa66c7dd80fa2c127355e8fadb4013a026f1e97133676b7153758861ac3b",
@@ -7329,13 +7329,9 @@
       "sha": "913416d0b1613c441d57a7dd6b324f28c5bd16c3e7b1ddeee0d8bf58b2d972bd",
       "bytes": 11897
     },
-    "scripts/health-baseline.json": {
-      "sha": "91a259d98190caad95db07ae82ecbc58e6023b4f49669efb2e62e4c4d5cf1cf7",
-      "bytes": 401080
-    },
     "scripts/health_check.mjs": {
-      "sha": "3b3c0a82a7ab8992507e78d520402b409a1bc4672a23f5e51735dd411ce6427f",
-      "bytes": 22311
+      "sha": "1e705f61d8f3c35f9f2e66ec1b774fdc73539a4dbb206af8436b10ea8360585d",
+      "bytes": 22768
     },
     "supabase/README.md": {
       "sha": "8e89a5b41712379fe173b6980fb2983399781e930514de22e640a30a4491f2ab",

@@ -33,10 +33,16 @@ const add = (group, name, ok, detail) => rows.push({ group, name, ok, detail });
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { maxBuffer: 1 << 28 }).toString('utf8');
 
 // Що вважаємо «проєктом»: те, що знає git, плюс власні скрипти лінійки.
+//
+// ⚠️ Файл відбитка сам себе НЕ рахує. Інакше виходить змія, що кусає хвіст:
+// зберігаємо відбиток → файл змінюється → наступний прогін каже «вміст
+// змінився» → лінійка червона завжди й ніхто її вже не читає.
+const SELF = 'scripts/health-baseline.json';
+
 function trackedFiles() {
   const out = git('ls-files', '-z').split('\0').filter(Boolean);
   const extra = ['scripts/health_check.mjs'].filter((p) => existsSync(join(ROOT, p)) && !out.includes(p));
-  return [...out, ...extra].sort();
+  return [...out, ...extra].filter((p) => p !== SELF).sort();
 }
 
 // ── 1. ВІДБИТКИ ─────────────────────────────────────────────────────────────
