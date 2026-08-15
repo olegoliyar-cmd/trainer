@@ -1,5 +1,5 @@
 {
-  "takenAt": "2026-08-15T11:15:26.173Z",
+  "takenAt": "2026-08-15T11:52:22.991Z",
   "files": {
     ".claude/launch.json": {
       "sha": "a5a8fa66c7dd80fa2c127355e8fadb4013a026f1e97133676b7153758861ac3b",
@@ -10,8 +10,8 @@
       "bytes": 418
     },
     "README.md": {
-      "sha": "b9d4ee26e9e748f205321c6a02b461b4090041921e045c1f04278b636988ba69",
-      "bytes": 12518
+      "sha": "5762f3600b1a0859434a47925acd141c4c7d1af4fe1d57e4da34022769215f13",
+      "bytes": 13680
     },
     "apps/client/_headers": {
       "sha": "61ff6f6032f898246e1b270f337750d671ac3d0ea8fcb42a095099a3e075f270",
