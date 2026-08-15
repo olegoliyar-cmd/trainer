@@ -14,7 +14,7 @@
 //
 // Код виходу: 0 = все зелене, 1 = є червоне.
 // ============================================================================
-import { readFileSync, writeFileSync, existsSync, statSync, mkdtempSync, rmSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, statSync, readdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { join, dirname, resolve, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -218,6 +218,34 @@ function checkAssets() {
   add('Асети існують', 'ПІДСУМОК', broken === 0, `${total - broken}/${total} посилань ведуть на існуючі файли`);
 }
 
+// ── 3b. АРХІВ НА ДИСКУ ──────────────────────────────────────────────────────
+// archive/ навмисно поза git (там чужі credentials і 430 МБ). Отже його НІХТО
+// більше не стереже — а 15.08.2026 `git filter-branch` тихо зніс звідти 1690
+// файлів, і помітили це лише за розміром теки. Тому: рахуємо файли й байти,
+// і кричимо, якщо просіло. Єдина копія цієї теки — на цьому диску.
+const ARCHIVE_MIN_FILES = 5300;
+const ARCHIVE_MIN_MB = 400;
+
+function checkArchive() {
+  const dir = join(ROOT, 'archive');
+  if (!existsSync(dir)) { add('Архів на диску', 'archive/ існує', false, '🔴 ТЕКИ НЕМАЄ'); return; }
+  let files = 0, bytes = 0;
+  const walk = (d) => {
+    for (const e of readdirSync(d, { withFileTypes: true })) {
+      const p = join(d, e.name);
+      if (e.isSymbolicLink()) continue;
+      if (e.isDirectory()) walk(p);
+      else { files++; try { bytes += statSync(p).size; } catch {} }
+    }
+  };
+  try { walk(dir); } catch (e) { add('Архів на диску', 'обхід теки', false, e.message); return; }
+  const mb = Math.round(bytes / 1024 / 1024);
+  add('Архів на диску', 'нічого не зникло', files >= ARCHIVE_MIN_FILES && mb >= ARCHIVE_MIN_MB,
+    `${files} файлів, ${mb} МБ (поріг: ${ARCHIVE_MIN_FILES} / ${ARCHIVE_MIN_MB} МБ)`);
+  add('Архів на диску', 'поза git', !!(() => { try { git('check-ignore', '-q', 'archive'); return true; } catch { return false; } })(),
+    'у .gitignore — на GitHub не йде ✓');
+}
+
 // ── 4. ЗАПУСКОВІ ШЛЯХИ: те, на що вказує конфіг, має існувати ───────────────
 // .claude/launch.json тримає конфігурації прев'ю. Якщо котрась вкаже на
 // неіснуючий файл — прев'ю тихо помре, і без цієї перевірки ніхто не помітить.
@@ -345,6 +373,7 @@ async function main() {
 
   checkSecrets();
   checkLaunchPaths();
+  checkArchive();
   checkAssets();
   checkSyntax();
   await checkPages();
