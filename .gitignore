@@ -10,3 +10,8 @@ node_modules/
 dist/
 *.log
 SECRETS-LOCAL.md
+
+# archive/ — знімок ІНШОГО проєкту (GrekFit). На диску лишається,
+# у git НЕ йде: там чужі credentials і 430 МБ, до TRAINER не стосується.
+# Пояснення що там лежить — archive/README.md
+archive/
