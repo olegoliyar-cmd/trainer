@@ -84,29 +84,83 @@ function compare(now, base) {
 
 // ── 2. СЕКРЕТИ: жодного ключа в тому, що піде в git ─────────────────────────
 // Це вартовий перед заливкою на GitHub. Значень НЕ друкує — лише шлях і рядок.
+//
+// ⚠️ УРОК 15.08.2026: ця перевірка сказала «чисто», а GitHub заблокував пуш.
+// Вона шукала лише ВІДОМІ ФОРМАТИ ключів і не знала про:
+//   • Supabase PAT `sbp_…` — формату не було в списку;
+//   • пароль до бази — 16 випадкових символів, під шаблон не підпадає В ПРИНЦИПІ.
+// Тому тепер два різні механізми: формати + КОНТЕКСТ («DB password: `…`»).
+// Мораль: перелік форматів завжди неповний. Контекст ловить те, що формат — ні.
 const SECRET_RE = new RegExp([
   'eyJhbGciOi[A-Za-z0-9_-]{10,}',              // JWT (Supabase service_role / anon)
+  'sbp_[A-Za-z0-9]{20,}',                      // Supabase Personal Access Token
+  'sb_secret_[A-Za-z0-9_-]{15,}',              // Supabase secret key
   'sk-ant-api[A-Za-z0-9_-]{15,}',              // Anthropic
   'sk-proj-[A-Za-z0-9_-]{15,}',                // OpenAI
   'ghp_[A-Za-z0-9]{30,}', 'github_pat_[A-Za-z0-9_]{30,}',
+  'gho_[A-Za-z0-9]{30,}', 'ghs_[A-Za-z0-9]{30,}',
   'AIza[A-Za-z0-9_-]{30,}',                    // Google
+  'xox[baprs]-[A-Za-z0-9-]{10,}',              // Slack
+  'AKIA[0-9A-Z]{16}',                          // AWS
   '[0-9]{9,10}:AA[A-Za-z0-9_-]{30,}',          // Telegram bot token
   '-----BEGIN [A-Z ]*PRIVATE KEY',
 ].join('|'));
 
+// Секрети без власного формату — ловимо за сусіднім текстом: значення в лапках
+// одразу після слова «пароль/password». Вужче не можна (пропустимо), ширше —
+// теж (перша версія дала 19 спрацювань, усі хибні: поля форм type="password",
+// шаблони `esc(payload.password)`, опис таблиць БД, токен аналітики Cloudflare).
+const CONTEXT_RE = new RegExp([
+  '(?:DB|database|бази|БД)[ _]?(?:password|пароль)\\s*[:=—-]{0,3}\\s*`([^`\\n]{8,64})`',
+  '(?:password|пароль)\\s*[:=—-]{1,3}\\s*[`"\']([A-Za-z0-9!@#$%^&*_-]{8,64})[`"\']',
+  '@[A-Za-z0-9.-]+\\.[a-z]{2,}\\s*/\\s*`?([A-Za-z0-9!@#$%^&*_-]{8,40})`?',   // логін / пароль
+].join('|'), 'gi');
+
+// Рядки, де слово «password» — це розмітка або код, а не секрет.
+const CODE_LINE = /(type\s*=\s*["']password|autocomplete\s*=|placeholder\s*=|esc\(|payload\.|\.value|env\.get|process\.env|Deno\.env|data-cf-beacon|input |<label|querySelector)/i;
+
+// Те, що ВИГЛЯДАЄ як секрет, але ним не є. Без цього списку чек кричатиме
+// на публічні ключі й порожні поля форм — і його швидко перестануть слухати.
+const NOT_SECRET = [
+  /^sb_publishable_/,        // публічний ключ Supabase — навмисно лежить у коді апів
+  /^\[REDACTED/i,            // уже зачищене
+  /^[•*x.]+$/i,              // плейсхолдери в полях форм
+  /^(password|пароль|secret|token|current-password|new-password)$/i,
+  /^\.dev-secrets/,          // згадка імені файлу, не значення
+  /^(SUPERADMIN|SUPABASE|CLOUDFLARE|BUNNY|OPENAI|ANTHROPIC|TELEGRAM)_/,  // ІМЕНА змінних
+];
+
 const TEXTY = /\.(md|html|js|mjs|cjs|json|sql|ts|tsx|yml|yaml|toml|txt|sh|env|css)$/i;
 
 function checkSecrets() {
-  const hits = [];
+  const byFormat = [], byContext = [];
   for (const rel of trackedFiles()) {
     if (!TEXTY.test(rel)) continue;
     const abs = join(ROOT, rel);
     if (!existsSync(abs)) continue;
     const lines = readFileSync(abs, 'utf8').split('\n');
-    lines.forEach((l, i) => { if (SECRET_RE.test(l)) hits.push(`${rel}:${i + 1}`); });
+    lines.forEach((l, i) => {
+      if (SECRET_RE.test(l) && !NOT_SECRET.some((r) => r.test(l.match(SECRET_RE)?.[0] || ''))) {
+        byFormat.push(`${rel}:${i + 1}`);
+        return;
+      }
+      if (CODE_LINE.test(l)) return;          // це розмітка/код, не секрет
+      CONTEXT_RE.lastIndex = 0;
+      let m;
+      while ((m = CONTEXT_RE.exec(l))) {
+        const v = (m.slice(1).find(Boolean) || '').trim();
+        if (v && v.length >= 8 && !NOT_SECRET.some((r) => r.test(v))) {
+          byContext.push(`${rel}:${i + 1}`);
+          break;
+        }
+      }
+    });
   }
-  add('Секрети', 'у трекованих файлах немає ключів', hits.length === 0,
-    hits.length ? `🔴 ЗНАЙДЕНО (значення не друкую): ${hits.join(', ')}` : `${trackedFiles().length} файлів чисті`);
+  add('Секрети', 'немає ключів відомих форматів', byFormat.length === 0,
+    byFormat.length ? `🔴 ЗНАЙДЕНО (значення не друкую): ${byFormat.join(', ')}` : `${trackedFiles().length} файлів чисті`);
+  add('Секрети', 'немає паролів за контекстом', byContext.length === 0,
+    byContext.length ? `🔴 схоже на пароль поруч зі словом «password/пароль»: ${byContext.join(', ')}`
+      : 'жодного «DB password: …» у відкритому вигляді');
 
   // Файли з секретами мусять лишатись поза git.
   for (const f of ['.dev-secrets.env', 'SECRETS-LOCAL.md']) {
